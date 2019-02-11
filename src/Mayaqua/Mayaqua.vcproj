@@ -46,7 +46,7 @@
 				Name="VCCLCompilerTool"
 				Optimization="0"
 				AdditionalIncludeDirectories="$(SolutionDir)Mayaqua\win32_inc;.;$(SolutionDir)"
-				PreprocessorDefinitions="WIN32;_DEBUG;_LIB;_USE_32BIT_TIME_T"
+				PreprocessorDefinitions="WIN32;_DEBUG;_LIB"
 				MinimalRebuild="true"
 				ExceptionHandling="0"
 				BasicRuntimeChecks="3"
@@ -69,8 +69,8 @@
 			/>
 			<Tool
 				Name="VCLibrarianTool"
-				AdditionalDependencies="libeay32.lib ssleay32.lib zlib.lib libintelaes.lib"
-				AdditionalLibraryDirectories="$(SolutionDir)BuildFiles\Library\$(PlatformName)_$(ConfigurationName)"
+				AdditionalDependencies="libeay32.lib ssleay32.lib zlib.lib"
+				AdditionalLibraryDirectories="$(SolutionDir)BuildFiles\Library\vs2008\$(PlatformName)_$(ConfigurationName)"
 			/>
 			<Tool
 				Name="VCALinkTool"
@@ -139,8 +139,8 @@
 			/>
 			<Tool
 				Name="VCLibrarianTool"
-				AdditionalDependencies="libeay32.lib ssleay32.lib zlib.lib libintelaes.lib"
-				AdditionalLibraryDirectories="$(SolutionDir)BuildFiles\Library\$(PlatformName)_$(ConfigurationName)"
+				AdditionalDependencies="libeay32.lib ssleay32.lib zlib.lib"
+				AdditionalLibraryDirectories="$(SolutionDir)BuildFiles\Library\vs2008\$(PlatformName)_$(ConfigurationName)"
 			/>
 			<Tool
 				Name="VCALinkTool"
@@ -188,7 +188,7 @@
 				EnableIntrinsicFunctions="false"
 				FavorSizeOrSpeed="0"
 				AdditionalIncludeDirectories="$(SolutionDir)Mayaqua\win32_inc;.;$(SolutionDir)"
-				PreprocessorDefinitions="WIN32;NDEBUG;_LIB;_USE_32BIT_TIME_T;VPN_SPEED"
+				PreprocessorDefinitions="WIN32;NDEBUG;_LIB;VPN_SPEED"
 				StringPooling="false"
 				ExceptionHandling="0"
 				RuntimeLibrary="0"
@@ -212,8 +212,8 @@
 			/>
 			<Tool
 				Name="VCLibrarianTool"
-				AdditionalDependencies="libeay32.lib ssleay32.lib zlib.lib libintelaes.lib"
-				AdditionalLibraryDirectories="$(SolutionDir)BuildFiles\Library\$(PlatformName)_$(ConfigurationName)"
+				AdditionalDependencies="libeay32.lib ssleay32.lib zlib.lib"
+				AdditionalLibraryDirectories="$(SolutionDir)BuildFiles\Library\vs2008\$(PlatformName)_$(ConfigurationName)"
 			/>
 			<Tool
 				Name="VCALinkTool"
@@ -286,8 +286,8 @@
 			/>
 			<Tool
 				Name="VCLibrarianTool"
-				AdditionalDependencies="libeay32.lib ssleay32.lib zlib.lib libintelaes.lib"
-				AdditionalLibraryDirectories="$(SolutionDir)BuildFiles\Library\$(PlatformName)_$(ConfigurationName)"
+				AdditionalDependencies="libeay32.lib ssleay32.lib zlib.lib"
+				AdditionalLibraryDirectories="$(SolutionDir)BuildFiles\Library\vs2008\$(PlatformName)_$(ConfigurationName)"
 			/>
 			<Tool
 				Name="VCALinkTool"
@@ -824,14 +824,6 @@
 			</File>
 			<File
 				RelativePath=".\zlib\zlib.h"
-				>
-			</File>
-		</Filter>
-		<Filter
-			Name="intelaes"
-			>
-			<File
-				RelativePath=".\intelaes\iaesni.h"
 				>
 			</File>
 		</Filter>

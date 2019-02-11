@@ -1,111 +1,5 @@
-// SoftEther VPN Source Code
+// SoftEther VPN Source Code - Developer Edition Master Branch
 // Cedar Communication Module
-// 
-// SoftEther VPN Server, Client and Bridge are free software under GPLv2.
-// 
-// Copyright (c) 2012-2016 Daiyuu Nobori.
-// Copyright (c) 2012-2016 SoftEther VPN Project, University of Tsukuba, Japan.
-// Copyright (c) 2012-2016 SoftEther Corporation.
-// 
-// All Rights Reserved.
-// 
-// http://www.softether.org/
-// 
-// Author: Daiyuu Nobori
-// Comments: Tetsuo Sugiyama, Ph.D.
-// 
-// This program is free software; you can redistribute it and/or
-// modify it under the terms of the GNU General Public License
-// version 2 as published by the Free Software Foundation.
-// 
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU General Public License for more details.
-// 
-// You should have received a copy of the GNU General Public License version 2
-// along with this program; if not, write to the Free Software
-// Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
-// 
-// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
-// EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
-// MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
-// IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
-// CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
-// TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
-// SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-// 
-// THE LICENSE AGREEMENT IS ATTACHED ON THE SOURCE-CODE PACKAGE
-// AS "LICENSE.TXT" FILE. READ THE TEXT FILE IN ADVANCE TO USE THE SOFTWARE.
-// 
-// 
-// THIS SOFTWARE IS DEVELOPED IN JAPAN, AND DISTRIBUTED FROM JAPAN,
-// UNDER JAPANESE LAWS. YOU MUST AGREE IN ADVANCE TO USE, COPY, MODIFY,
-// MERGE, PUBLISH, DISTRIBUTE, SUBLICENSE, AND/OR SELL COPIES OF THIS
-// SOFTWARE, THAT ANY JURIDICAL DISPUTES WHICH ARE CONCERNED TO THIS
-// SOFTWARE OR ITS CONTENTS, AGAINST US (SOFTETHER PROJECT, SOFTETHER
-// CORPORATION, DAIYUU NOBORI OR OTHER SUPPLIERS), OR ANY JURIDICAL
-// DISPUTES AGAINST US WHICH ARE CAUSED BY ANY KIND OF USING, COPYING,
-// MODIFYING, MERGING, PUBLISHING, DISTRIBUTING, SUBLICENSING, AND/OR
-// SELLING COPIES OF THIS SOFTWARE SHALL BE REGARDED AS BE CONSTRUED AND
-// CONTROLLED BY JAPANESE LAWS, AND YOU MUST FURTHER CONSENT TO
-// EXCLUSIVE JURISDICTION AND VENUE IN THE COURTS SITTING IN TOKYO,
-// JAPAN. YOU MUST WAIVE ALL DEFENSES OF LACK OF PERSONAL JURISDICTION
-// AND FORUM NON CONVENIENS. PROCESS MAY BE SERVED ON EITHER PARTY IN
-// THE MANNER AUTHORIZED BY APPLICABLE LAW OR COURT RULE.
-// 
-// USE ONLY IN JAPAN. DO NOT USE THIS SOFTWARE IN ANOTHER COUNTRY UNLESS
-// YOU HAVE A CONFIRMATION THAT THIS SOFTWARE DOES NOT VIOLATE ANY
-// CRIMINAL LAWS OR CIVIL RIGHTS IN THAT PARTICULAR COUNTRY. USING THIS
-// SOFTWARE IN OTHER COUNTRIES IS COMPLETELY AT YOUR OWN RISK. THE
-// SOFTETHER VPN PROJECT HAS DEVELOPED AND DISTRIBUTED THIS SOFTWARE TO
-// COMPLY ONLY WITH THE JAPANESE LAWS AND EXISTING CIVIL RIGHTS INCLUDING
-// PATENTS WHICH ARE SUBJECTS APPLY IN JAPAN. OTHER COUNTRIES' LAWS OR
-// CIVIL RIGHTS ARE NONE OF OUR CONCERNS NOR RESPONSIBILITIES. WE HAVE
-// NEVER INVESTIGATED ANY CRIMINAL REGULATIONS, CIVIL LAWS OR
-// INTELLECTUAL PROPERTY RIGHTS INCLUDING PATENTS IN ANY OF OTHER 200+
-// COUNTRIES AND TERRITORIES. BY NATURE, THERE ARE 200+ REGIONS IN THE
-// WORLD, WITH DIFFERENT LAWS. IT IS IMPOSSIBLE TO VERIFY EVERY
-// COUNTRIES' LAWS, REGULATIONS AND CIVIL RIGHTS TO MAKE THE SOFTWARE
-// COMPLY WITH ALL COUNTRIES' LAWS BY THE PROJECT. EVEN IF YOU WILL BE
-// SUED BY A PRIVATE ENTITY OR BE DAMAGED BY A PUBLIC SERVANT IN YOUR
-// COUNTRY, THE DEVELOPERS OF THIS SOFTWARE WILL NEVER BE LIABLE TO
-// RECOVER OR COMPENSATE SUCH DAMAGES, CRIMINAL OR CIVIL
-// RESPONSIBILITIES. NOTE THAT THIS LINE IS NOT LICENSE RESTRICTION BUT
-// JUST A STATEMENT FOR WARNING AND DISCLAIMER.
-// 
-// 
-// SOURCE CODE CONTRIBUTION
-// ------------------------
-// 
-// Your contribution to SoftEther VPN Project is much appreciated.
-// Please send patches to us through GitHub.
-// Read the SoftEther VPN Patch Acceptance Policy in advance:
-// http://www.softether.org/5-download/src/9.patch
-// 
-// 
-// DEAR SECURITY EXPERTS
-// ---------------------
-// 
-// If you find a bug or a security vulnerability please kindly inform us
-// about the problem immediately so that we can fix the security problem
-// to protect a lot of users around the world as soon as possible.
-// 
-// Our e-mail address for security reports is:
-// softether-vpn-security [at] softether.org
-// 
-// Please note that the above e-mail address is not a technical support
-// inquiry address. If you need technical assistance, please visit
-// http://www.softether.org/ and ask your question on the users forum.
-// 
-// Thank you for your cooperation.
-// 
-// 
-// NO MEMORY OR RESOURCE LEAKS
-// ---------------------------
-// 
-// The memory-leaks and resource-leaks verification under the stress
-// test has been passed before release this source code.
 
 
 // Wpc.c
@@ -164,6 +58,14 @@ PACK *WpcCallEx(char *url, INTERNET_SETTING *setting, UINT timeout_connect, UINT
 				char *function_name, PACK *pack, X *cert, K *key, void *sha1_cert_hash, bool *cancel, UINT max_recv_size,
 				char *additional_header_name, char *additional_header_value)
 {
+	return WpcCallEx2(url, setting, timeout_connect, timeout_comm, function_name, pack,
+		cert, key, sha1_cert_hash, (sha1_cert_hash == NULL ? 0 : 1),
+		cancel, max_recv_size, additional_header_name, additional_header_value, NULL);
+}
+PACK *WpcCallEx2(char *url, INTERNET_SETTING *setting, UINT timeout_connect, UINT timeout_comm,
+				char *function_name, PACK *pack, X *cert, K *key, void *sha1_cert_hash, UINT num_hashes, bool *cancel, UINT max_recv_size,
+				char *additional_header_name, char *additional_header_value, char *sni_string)
+{
 	URL_DATA data;
 	BUF *b, *recv;
 	UINT error;
@@ -197,8 +99,14 @@ PACK *WpcCallEx(char *url, INTERNET_SETTING *setting, UINT timeout_connect, UINT
 		StrCpy(data.AdditionalHeaderValue, sizeof(data.AdditionalHeaderValue), additional_header_value);
 	}
 
-	recv = HttpRequestEx(&data, setting, timeout_connect, timeout_comm, &error,
-		false, b->Buf, NULL, NULL, sha1_cert_hash, cancel, max_recv_size);
+	if (sni_string != NULL && IsEmptyStr(sni_string) == false)
+	{
+		StrCpy(data.SniString, sizeof(data.SniString), sni_string);
+	}
+
+	recv = HttpRequestEx3(&data, setting, timeout_connect, timeout_comm, &error,
+		false, b->Buf, NULL, NULL, sha1_cert_hash, num_hashes, cancel, max_recv_size,
+		NULL, NULL);
 
 	FreeBuf(b);
 
@@ -253,7 +161,7 @@ bool WpcParsePacket(WPC_PACKET *packet, BUF *buf)
 	b = WpcDataEntryToBuf(WpcFindDataEntry(o, "PACK"));
 	if (b != NULL)
 	{
-		HashSha1(hash, b->Buf, b->Size);
+		Sha1(hash, b->Buf, b->Size);
 
 		packet->Pack = BufToPack(b);
 		FreeBuf(b);
@@ -348,7 +256,7 @@ BUF *WpcGeneratePacket(PACK *pack, X *cert, K *key)
 	}
 
 	pack_data = PackToBuf(pack);
-	HashSha1(hash, pack_data->Buf, pack_data->Size);
+	Sha1(hash, pack_data->Buf, pack_data->Size);
 
 	if (cert != NULL && key != NULL)
 	{
@@ -609,7 +517,7 @@ SOCK *WpcSockConnectEx(WPC_CONNECT *param, UINT *error_code, UINT timeout, bool 
 	switch (param->ProxyType)
 	{
 	case PROXY_DIRECT:
-		sock = TcpConnectEx3(param->HostName, param->Port, timeout, cancel, NULL, true, NULL, false, false, NULL);
+		sock = TcpConnectEx3(param->HostName, param->Port, timeout, cancel, NULL, true, NULL, false, NULL);
 		if (sock == NULL)
 		{
 			err = ERR_CONNECT_FAILED;
@@ -617,9 +525,7 @@ SOCK *WpcSockConnectEx(WPC_CONNECT *param, UINT *error_code, UINT timeout, bool 
 		break;
 
 	case PROXY_HTTP:
-		sock = ProxyConnectEx2(&c, param->ProxyHostName, param->ProxyPort,
-			param->HostName, param->Port,
-			param->ProxyUsername, param->ProxyPassword, false, cancel, NULL, timeout);
+		sock = ProxyConnectEx3(&c, param, false, cancel, NULL, timeout);
 		if (sock == NULL)
 		{
 			err = c.Err;
@@ -627,6 +533,7 @@ SOCK *WpcSockConnectEx(WPC_CONNECT *param, UINT *error_code, UINT timeout, bool 
 		break;
 
 	case PROXY_SOCKS:
+		// SOCKS4 connection
 		sock = SocksConnectEx2(&c, param->ProxyHostName, param->ProxyPort,
 			param->HostName, param->Port,
 			param->ProxyUsername, false, cancel, NULL, timeout, NULL);
@@ -635,6 +542,14 @@ SOCK *WpcSockConnectEx(WPC_CONNECT *param, UINT *error_code, UINT timeout, bool 
 			err = c.Err;
 		}
 		break;
+
+	case PROXY_SOCKS5:
+		// SOCKS5 connection
+		sock = Socks5Connect(&c, param, false, cancel, NULL, timeout, NULL);
+		if (sock == NULL)
+		{
+			err = c.Err;
+		}
 	}
 
 	if (error_code != NULL)
@@ -664,6 +579,7 @@ SOCK *WpcSockConnect2(char *hostname, UINT port, INTERNET_SETTING *t, UINT *erro
 	c.ProxyPort = t->ProxyPort;
 	StrCpy(c.ProxyUsername, sizeof(c.ProxyUsername), t->ProxyUsername);
 	StrCpy(c.ProxyPassword, sizeof(c.ProxyPassword), t->ProxyPassword);
+	StrCpy(c.CustomHttpHeader, sizeof(c.CustomHttpHeader), t->CustomHttpHeader);
 
 	return WpcSockConnect(&c, error_code, timeout);
 }
@@ -693,6 +609,16 @@ BUF *HttpRequestEx2(URL_DATA *data, INTERNET_SETTING *setting,
 				   UINT *error_code, bool check_ssl_trust, char *post_data,
 				   WPC_RECV_CALLBACK *recv_callback, void *recv_callback_param, void *sha1_cert_hash,
 				   bool *cancel, UINT max_recv_size, char *header_name, char *header_value)
+{
+	return HttpRequestEx3(data, setting, timeout_connect, timeout_comm, error_code, check_ssl_trust,
+		post_data, recv_callback, recv_callback_param, sha1_cert_hash, (sha1_cert_hash == NULL ? 0 : 1),
+		cancel, max_recv_size, header_name, header_value);
+}
+BUF *HttpRequestEx3(URL_DATA *data, INTERNET_SETTING *setting,
+					UINT timeout_connect, UINT timeout_comm,
+					UINT *error_code, bool check_ssl_trust, char *post_data,
+					WPC_RECV_CALLBACK *recv_callback, void *recv_callback_param, void *sha1_cert_hash, UINT num_hashes,
+					bool *cancel, UINT max_recv_size, char *header_name, char *header_value)
 {
 	WPC_CONNECT con;
 	SOCK *s;
@@ -728,6 +654,14 @@ BUF *HttpRequestEx2(URL_DATA *data, INTERNET_SETTING *setting,
 	{
 		timeout_comm = WPC_TIMEOUT;
 	}
+	if (sha1_cert_hash == NULL)
+	{
+		num_hashes = 0;
+	}
+	if (num_hashes == 0)
+	{
+		sha1_cert_hash = NULL;
+	}
 
 	// Connection
 	Zero(&con, sizeof(con));
@@ -738,6 +672,7 @@ BUF *HttpRequestEx2(URL_DATA *data, INTERNET_SETTING *setting,
 	con.ProxyPort = setting->ProxyPort;
 	StrCpy(con.ProxyUsername, sizeof(con.ProxyUsername), setting->ProxyUsername);
 	StrCpy(con.ProxyPassword, sizeof(con.ProxyPassword), setting->ProxyPassword);
+	StrCpy(con.CustomHttpHeader, sizeof(con.CustomHttpHeader), setting->CustomHttpHeader);
 
 	if (setting->ProxyType != PROXY_HTTP || data->Secure)
 	{
@@ -758,7 +693,7 @@ BUF *HttpRequestEx2(URL_DATA *data, INTERNET_SETTING *setting,
 	else
 	{
 		// If the connection is not SSL via HTTP Proxy
-		s = TcpConnectEx3(con.ProxyHostName, con.ProxyPort, timeout_connect, cancel, NULL, true, NULL, false, false, NULL);
+		s = TcpConnectEx3(con.ProxyHostName, con.ProxyPort, timeout_connect, cancel, NULL, true, NULL, false, NULL);
 		if (s == NULL)
 		{
 			*error_code = ERR_PROXY_CONNECT_FAILED;
@@ -773,7 +708,7 @@ BUF *HttpRequestEx2(URL_DATA *data, INTERNET_SETTING *setting,
 	if (data->Secure)
 	{
 		// Start the SSL communication
-		if (StartSSLEx(s, NULL, NULL, true, 0, NULL) == false)
+		if (StartSSLEx(s, NULL, NULL, 0, (IsEmptyStr(data->SniString) ? NULL : data->SniString)) == false)
 		{
 			// SSL connection failed
 			*error_code = ERR_PROTOCOL_ERROR;
@@ -782,13 +717,28 @@ BUF *HttpRequestEx2(URL_DATA *data, INTERNET_SETTING *setting,
 			return NULL;
 		}
 
-		if (sha1_cert_hash != NULL)
+		if (sha1_cert_hash != NULL && num_hashes >= 1)
 		{
 			UCHAR hash[SHA1_SIZE];
+			UINT i;
+			bool ok = false;
+
 			Zero(hash, sizeof(hash));
 			GetXDigest(s->RemoteX, hash, true);
 
-			if (Cmp(hash, sha1_cert_hash, SHA1_SIZE) != 0)
+			for (i = 0;i < num_hashes;i++)
+			{
+				UCHAR *a = (UCHAR *)sha1_cert_hash;
+				a += (SHA1_SIZE * i);
+
+				if (Cmp(hash, a, SHA1_SIZE) == 0)
+				{
+					ok = true;
+					break;
+				}
+			}
+
+			if (ok == false)
 			{
 				// Destination certificate hash mismatch
 				*error_code = ERR_CERT_NOT_TRUSTED;
@@ -1362,7 +1312,3 @@ void EncodeSafe64(char *dst, void *src, UINT src_size)
 	Base64ToSafe64(dst);
 }
 
-
-// Developed by SoftEther VPN Project at University of Tsukuba in Japan.
-// Department of Computer Science has dozens of overly-enthusiastic geeks.
-// Join us: http://www.tsukuba.ac.jp/english/admission/

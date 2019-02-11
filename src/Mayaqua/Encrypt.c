@@ -1,111 +1,5 @@
-// SoftEther VPN Source Code
+// SoftEther VPN Source Code - Developer Edition Master Branch
 // Mayaqua Kernel
-// 
-// SoftEther VPN Server, Client and Bridge are free software under GPLv2.
-// 
-// Copyright (c) 2012-2016 Daiyuu Nobori.
-// Copyright (c) 2012-2016 SoftEther VPN Project, University of Tsukuba, Japan.
-// Copyright (c) 2012-2016 SoftEther Corporation.
-// 
-// All Rights Reserved.
-// 
-// http://www.softether.org/
-// 
-// Author: Daiyuu Nobori
-// Comments: Tetsuo Sugiyama, Ph.D.
-// 
-// This program is free software; you can redistribute it and/or
-// modify it under the terms of the GNU General Public License
-// version 2 as published by the Free Software Foundation.
-// 
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU General Public License for more details.
-// 
-// You should have received a copy of the GNU General Public License version 2
-// along with this program; if not, write to the Free Software
-// Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
-// 
-// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
-// EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
-// MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
-// IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
-// CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
-// TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
-// SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-// 
-// THE LICENSE AGREEMENT IS ATTACHED ON THE SOURCE-CODE PACKAGE
-// AS "LICENSE.TXT" FILE. READ THE TEXT FILE IN ADVANCE TO USE THE SOFTWARE.
-// 
-// 
-// THIS SOFTWARE IS DEVELOPED IN JAPAN, AND DISTRIBUTED FROM JAPAN,
-// UNDER JAPANESE LAWS. YOU MUST AGREE IN ADVANCE TO USE, COPY, MODIFY,
-// MERGE, PUBLISH, DISTRIBUTE, SUBLICENSE, AND/OR SELL COPIES OF THIS
-// SOFTWARE, THAT ANY JURIDICAL DISPUTES WHICH ARE CONCERNED TO THIS
-// SOFTWARE OR ITS CONTENTS, AGAINST US (SOFTETHER PROJECT, SOFTETHER
-// CORPORATION, DAIYUU NOBORI OR OTHER SUPPLIERS), OR ANY JURIDICAL
-// DISPUTES AGAINST US WHICH ARE CAUSED BY ANY KIND OF USING, COPYING,
-// MODIFYING, MERGING, PUBLISHING, DISTRIBUTING, SUBLICENSING, AND/OR
-// SELLING COPIES OF THIS SOFTWARE SHALL BE REGARDED AS BE CONSTRUED AND
-// CONTROLLED BY JAPANESE LAWS, AND YOU MUST FURTHER CONSENT TO
-// EXCLUSIVE JURISDICTION AND VENUE IN THE COURTS SITTING IN TOKYO,
-// JAPAN. YOU MUST WAIVE ALL DEFENSES OF LACK OF PERSONAL JURISDICTION
-// AND FORUM NON CONVENIENS. PROCESS MAY BE SERVED ON EITHER PARTY IN
-// THE MANNER AUTHORIZED BY APPLICABLE LAW OR COURT RULE.
-// 
-// USE ONLY IN JAPAN. DO NOT USE THIS SOFTWARE IN ANOTHER COUNTRY UNLESS
-// YOU HAVE A CONFIRMATION THAT THIS SOFTWARE DOES NOT VIOLATE ANY
-// CRIMINAL LAWS OR CIVIL RIGHTS IN THAT PARTICULAR COUNTRY. USING THIS
-// SOFTWARE IN OTHER COUNTRIES IS COMPLETELY AT YOUR OWN RISK. THE
-// SOFTETHER VPN PROJECT HAS DEVELOPED AND DISTRIBUTED THIS SOFTWARE TO
-// COMPLY ONLY WITH THE JAPANESE LAWS AND EXISTING CIVIL RIGHTS INCLUDING
-// PATENTS WHICH ARE SUBJECTS APPLY IN JAPAN. OTHER COUNTRIES' LAWS OR
-// CIVIL RIGHTS ARE NONE OF OUR CONCERNS NOR RESPONSIBILITIES. WE HAVE
-// NEVER INVESTIGATED ANY CRIMINAL REGULATIONS, CIVIL LAWS OR
-// INTELLECTUAL PROPERTY RIGHTS INCLUDING PATENTS IN ANY OF OTHER 200+
-// COUNTRIES AND TERRITORIES. BY NATURE, THERE ARE 200+ REGIONS IN THE
-// WORLD, WITH DIFFERENT LAWS. IT IS IMPOSSIBLE TO VERIFY EVERY
-// COUNTRIES' LAWS, REGULATIONS AND CIVIL RIGHTS TO MAKE THE SOFTWARE
-// COMPLY WITH ALL COUNTRIES' LAWS BY THE PROJECT. EVEN IF YOU WILL BE
-// SUED BY A PRIVATE ENTITY OR BE DAMAGED BY A PUBLIC SERVANT IN YOUR
-// COUNTRY, THE DEVELOPERS OF THIS SOFTWARE WILL NEVER BE LIABLE TO
-// RECOVER OR COMPENSATE SUCH DAMAGES, CRIMINAL OR CIVIL
-// RESPONSIBILITIES. NOTE THAT THIS LINE IS NOT LICENSE RESTRICTION BUT
-// JUST A STATEMENT FOR WARNING AND DISCLAIMER.
-// 
-// 
-// SOURCE CODE CONTRIBUTION
-// ------------------------
-// 
-// Your contribution to SoftEther VPN Project is much appreciated.
-// Please send patches to us through GitHub.
-// Read the SoftEther VPN Patch Acceptance Policy in advance:
-// http://www.softether.org/5-download/src/9.patch
-// 
-// 
-// DEAR SECURITY EXPERTS
-// ---------------------
-// 
-// If you find a bug or a security vulnerability please kindly inform us
-// about the problem immediately so that we can fix the security problem
-// to protect a lot of users around the world as soon as possible.
-// 
-// Our e-mail address for security reports is:
-// softether-vpn-security [at] softether.org
-// 
-// Please note that the above e-mail address is not a technical support
-// inquiry address. If you need technical assistance, please visit
-// http://www.softether.org/ and ask your question on the users forum.
-// 
-// Thank you for your cooperation.
-// 
-// 
-// NO MEMORY OR RESOURCE LEAKS
-// ---------------------------
-// 
-// The memory-leaks and resource-leaks verification under the stress
-// test has been passed before release this source code.
 
 
 // Encrypt.c
@@ -145,18 +39,37 @@
 #include <openssl/x509v3.h>
 #include <Mayaqua/Mayaqua.h>
 
-#ifdef	USE_INTEL_AESNI_LIBRARY
-#include <intelaes/iaesni.h>
-#endif	// USE_INTEL_AESNI_LIBRARY
+#ifdef _MSC_VER
+	#include <intrin.h> // For __cpuid()
+#else // _MSC_VER
+
+#ifndef SKIP_CPU_FEATURES
+	#include "cpu_features_macros.h"
+#endif
+
+	#if defined(CPU_FEATURES_ARCH_X86)
+		#include "cpuinfo_x86.h"
+	#elif defined(CPU_FEATURES_ARCH_ARM)
+		#include "cpuinfo_arm.h"
+	#elif defined(CPU_FEATURES_ARCH_AARCH64)
+		#include "cpuinfo_aarch64.h"
+	#elif defined(CPU_FEATURES_ARCH_MIPS)
+		#include "cpuinfo_mips.h"
+	#elif defined(CPU_FEATURES_ARCH_PPC)
+		#include "cpuinfo_ppc.h"
+	#endif
+#endif // _MSC_VER
 
 LOCK *openssl_lock = NULL;
+
+int ssl_clientcert_index = 0;
 
 LOCK **ssl_lock_obj = NULL;
 UINT ssl_lock_num;
 static bool openssl_inited = false;
-static bool is_intel_aes_supported = false;
 
-static unsigned char *Internal_SHA0(const unsigned char *d, size_t n, unsigned char *md);
+static UINT Internal_HMac(const EVP_MD *md, void *dest, void *key, UINT key_size, const void *src, const UINT src_size);
+static void Internal_Sha0(unsigned char *dest, const unsigned char *src, const UINT size);
 
 // For the callback function
 typedef struct CB_PARAM
@@ -165,52 +78,64 @@ typedef struct CB_PARAM
 } CB_PARAM;
 
 // Copied from t1_enc.c of OpenSSL
-#define HMAC_Init_ex(ctx,sec,len,md,impl) HMAC_Init(ctx, sec, len, md) 
-#define HMAC_CTX_cleanup(ctx)             HMAC_cleanup(ctx)
 void Enc_tls1_P_hash(const EVP_MD *md, const unsigned char *sec, int sec_len,
 				 const unsigned char *seed, int seed_len, unsigned char *out, int olen)
 {
 	int chunk,n;
 	unsigned int j;
-	HMAC_CTX ctx;
-	HMAC_CTX ctx_tmp;
+	HMAC_CTX *ctx;
+	HMAC_CTX *ctx_tmp;
 	unsigned char A1[EVP_MAX_MD_SIZE];
 	unsigned int A1_len;
 
+#if OPENSSL_VERSION_NUMBER >= 0x10100000L
+	ctx = HMAC_CTX_new();
+	ctx_tmp = HMAC_CTX_new();
+#else
+	HMAC_CTX ctx_;
+	HMAC_CTX ctx_tmp_;
+	ctx = &ctx_;
+	ctx_tmp = &ctx_tmp_;
+	Zero(ctx, sizeof(HMAC_CTX));
+	Zero(ctx_tmp, sizeof(HMAC_CTX));
+#endif
 	chunk=EVP_MD_size(md);
 
-	Zero(&ctx, sizeof(ctx));
-	Zero(&ctx_tmp, sizeof(ctx_tmp));
-	HMAC_Init_ex(&ctx,sec,sec_len,md, NULL);
-	HMAC_Init_ex(&ctx_tmp,sec,sec_len,md, NULL);
-	HMAC_Update(&ctx,seed,seed_len);
-	HMAC_Final(&ctx,A1,&A1_len);
+	HMAC_Init_ex(ctx,sec,sec_len,md, NULL);
+	HMAC_Init_ex(ctx_tmp,sec,sec_len,md, NULL);
+	HMAC_Update(ctx,seed,seed_len);
+	HMAC_Final(ctx,A1,&A1_len);
 
 	n=0;
 	for (;;)
 	{
-		HMAC_Init_ex(&ctx,NULL,0,NULL,NULL); /* re-init */
-		HMAC_Init_ex(&ctx_tmp,NULL,0,NULL,NULL); /* re-init */
-		HMAC_Update(&ctx,A1,A1_len);
-		HMAC_Update(&ctx_tmp,A1,A1_len);
-		HMAC_Update(&ctx,seed,seed_len);
+		HMAC_Init_ex(ctx,NULL,0,NULL,NULL); /* re-init */
+		HMAC_Init_ex(ctx_tmp,NULL,0,NULL,NULL); /* re-init */
+		HMAC_Update(ctx,A1,A1_len);
+		HMAC_Update(ctx_tmp,A1,A1_len);
+		HMAC_Update(ctx,seed,seed_len);
 
 		if (olen > chunk)
 		{
-			HMAC_Final(&ctx,out,&j);
+			HMAC_Final(ctx,out,&j);
 			out+=j;
 			olen-=j;
-			HMAC_Final(&ctx_tmp,A1,&A1_len); /* calc the next A1 value */
+			HMAC_Final(ctx_tmp,A1,&A1_len); /* calc the next A1 value */
 		}
 		else	/* last one */
 		{
-			HMAC_Final(&ctx,A1,&A1_len);
+			HMAC_Final(ctx,A1,&A1_len);
 			memcpy(out,A1,olen);
 			break;
 		}
 	}
-	HMAC_CTX_cleanup(&ctx);
-	HMAC_CTX_cleanup(&ctx_tmp);
+#if OPENSSL_VERSION_NUMBER >= 0x10100000L
+	HMAC_CTX_free(ctx);
+	HMAC_CTX_free(ctx_tmp);
+#else
+	HMAC_CTX_cleanup(ctx);
+	HMAC_CTX_cleanup(ctx_tmp);
+#endif
 	Zero (A1, sizeof(A1));
 }
 
@@ -241,245 +166,113 @@ void Enc_tls1_PRF(unsigned char *label, int label_len, const unsigned char *sec,
 	Free(out2);
 }
 
-// Easy encryption
-BUF *EasyEncrypt(BUF *src_buf)
+// MD4 specific hash function
+void HashMd4(void *dst, void *src, UINT size)
 {
-	UCHAR key[SHA1_SIZE];
-	BUF *tmp_data;
-	CRYPT *rc4;
-	BUF *ret;
 	// Validate arguments
-	if (src_buf == NULL)
+	if (dst == NULL || (src == NULL && size != 0))
 	{
-		return NULL;
+		return;
 	}
 
-	Rand(key, SHA1_SIZE);
-
-	tmp_data = CloneBuf(src_buf);
-
-	rc4 = NewCrypt(key, SHA1_SIZE);
-
-	Encrypt(rc4, tmp_data->Buf, tmp_data->Buf, tmp_data->Size);
-
-	ret = NewBuf();
-
-	WriteBuf(ret, key, SHA1_SIZE);
-	WriteBufBuf(ret, tmp_data);
-
-	FreeCrypt(rc4);
-	FreeBuf(tmp_data);
-
-	SeekBufToBegin(ret);
-
-	return ret;
+	MD4(src, size, dst);
 }
 
-// Easy decryption
-BUF *EasyDecrypt(BUF *src_buf)
+// MD5 hash
+void Md5(void *dst, void *src, UINT size)
 {
-	UCHAR key[SHA1_SIZE];
-	BUF *tmp_buf;
-	CRYPT *rc4;
 	// Validate arguments
-	if (src_buf == NULL)
+	if (dst == NULL || (src == NULL && size != 0))
 	{
-		return NULL;
+		return;
 	}
 
-	SeekBufToBegin(src_buf);
+	MD5(src, size, dst);
+}
 
-	if (ReadBuf(src_buf, key, SHA1_SIZE) != SHA1_SIZE)
+// SHA hash
+void Sha(UINT sha_type, void *dst, void *src, UINT size)
+{
+	// Validate arguments
+	if (dst == NULL || (src == NULL && size != 0))
 	{
-		return NULL;
+		return;
 	}
 
-	tmp_buf = ReadRemainBuf(src_buf);
-	if (tmp_buf == NULL)
+	switch(sha_type) {
+	case SHA1_160:
+		SHA1(src, size, dst);
+		break;
+	case SHA2_256:
+		SHA256(src, size, dst);
+		break;
+	case SHA2_384:
+		SHA384(src, size, dst);
+		break;
+	case SHA2_512:
+		SHA512(src, size, dst);
+		break;
+	}
+}
+
+void Sha0(void *dst, void *src, UINT size)
+{
+	// Validate arguments
+	if (dst == NULL || (src == NULL && size != 0))
 	{
-		return NULL;
+		return;
 	}
 
-	rc4 = NewCrypt(key, SHA1_SIZE);
-	Encrypt(rc4, tmp_buf->Buf, tmp_buf->Buf, tmp_buf->Size);
-	FreeCrypt(rc4);
+	Internal_Sha0(dst, src, size);
+}
 
-	SeekBufToBegin(tmp_buf);
+void Sha1(void *dst, void *src, UINT size)
+{
+	Sha(SHA1_160, dst, src, size);
+}
 
-	return tmp_buf;
+void Sha2_256(void *dst, void *src, UINT size)
+{
+	Sha(SHA2_256, dst, src, size);
+}
+
+void Sha2_384(void *dst, void *src, UINT size)
+{
+	Sha(SHA2_384, dst, src, size);
+}
+
+void Sha2_512(void *dst, void *src, UINT size)
+{
+	Sha(SHA2_512, dst, src, size);
+}
+
+void HashSha1(void *dst, void *src, UINT size)
+{
+	Sha1(dst, src, size);
 }
 
 // Calculation of HMAC (MD5)
-void HMacMd5(void *dst, void *key, UINT key_size, void *data, UINT data_size)
+UINT HMacMd5(void *dst, void *key, UINT key_size, void *src, UINT src_size)
 {
-	UCHAR k[HMAC_BLOCK_SIZE];
-	UCHAR hash1[MD5_SIZE];
-	UCHAR data2[HMAC_BLOCK_SIZE];
-	MD5_CTX md5_ctx1;
-	UCHAR pad1[HMAC_BLOCK_SIZE];
-	UINT i;
-	// Validate arguments
-	if (dst == NULL || (key == NULL && key_size != 0) || (data == NULL && data_size != 0))
-	{
-		return;
-	}
-
-	// Creating a K
-	if (key_size <= HMAC_BLOCK_SIZE)
-	{
-		for (i = 0;i < key_size;i++)
-		{
-			pad1[i] = ((UCHAR *)key)[i] ^ 0x36;
-		}
-		for (i = key_size;i < HMAC_BLOCK_SIZE;i++)
-		{
-			pad1[i] = 0 ^ 0x36;
-		}
-	}
-	else
-	{
-		Zero(k, sizeof(k));
-		Hash(k, key, key_size, false);
-
-		for (i = 0;i < HMAC_BLOCK_SIZE;i++)
-		{
-			pad1[i] = k[i] ^ 0x36;
-		}
-	}
-
-	MD5_Init(&md5_ctx1);
-	MD5_Update(&md5_ctx1, pad1, sizeof(pad1));
-	MD5_Update(&md5_ctx1, data, data_size);
-	MD5_Final(hash1, &md5_ctx1);
-
-	// Generation of data 2
-	if (key_size <= HMAC_BLOCK_SIZE)
-	{
-		for (i = 0;i < key_size;i++)
-		{
-			data2[i] = ((UCHAR *)key)[i] ^ 0x5c;
-		}
-		for (i = key_size;i < HMAC_BLOCK_SIZE;i++)
-		{
-			data2[i] = 0 ^ 0x5c;
-		}
-	}
-	else
-	{
-		for (i = 0;i < HMAC_BLOCK_SIZE;i++)
-		{
-			data2[i] = k[i] ^ 0x5c;
-		}
-	}
-
-	MD5_Init(&md5_ctx1);
-	MD5_Update(&md5_ctx1, data2, HMAC_BLOCK_SIZE);
-	MD5_Update(&md5_ctx1, hash1, MD5_SIZE);
-	MD5_Final(dst, &md5_ctx1);
+	return Internal_HMac(EVP_md5(), dst, key, key_size, src, src_size);
 }
 
 // Calculation of HMAC (SHA-1)
-void HMacSha1(void *dst, void *key, UINT key_size, void *data, UINT data_size)
+UINT HMacSha1(void *dst, void *key, UINT key_size, void *src, UINT src_size)
 {
-	UCHAR k[HMAC_BLOCK_SIZE];
-	UCHAR hash1[SHA1_SIZE];
-	UCHAR data2[HMAC_BLOCK_SIZE];
-	SHA_CTX sha_ctx1;
-	UCHAR pad1[HMAC_BLOCK_SIZE];
-	UINT i;
-	// Validate arguments
-	if (dst == NULL || (key == NULL && key_size != 0) || (data == NULL && data_size != 0))
-	{
-		return;
-	}
-
-	// Creating a K
-	if (key_size <= HMAC_BLOCK_SIZE)
-	{
-		for (i = 0;i < key_size;i++)
-		{
-			pad1[i] = ((UCHAR *)key)[i] ^ 0x36;
-		}
-		for (i = key_size;i < HMAC_BLOCK_SIZE;i++)
-		{
-			pad1[i] = 0 ^ 0x36;
-		}
-	}
-	else
-	{
-		Zero(k, sizeof(k));
-		HashSha1(k, key, key_size);
-
-		for (i = 0;i < HMAC_BLOCK_SIZE;i++)
-		{
-			pad1[i] = k[i] ^ 0x36;
-		}
-	}
-
-	SHA1_Init(&sha_ctx1);
-	SHA1_Update(&sha_ctx1, pad1, sizeof(pad1));
-	SHA1_Update(&sha_ctx1, data, data_size);
-	SHA1_Final(hash1, &sha_ctx1);
-
-	// Generation of data 2
-	if (key_size <= HMAC_BLOCK_SIZE)
-	{
-		for (i = 0;i < key_size;i++)
-		{
-			data2[i] = ((UCHAR *)key)[i] ^ 0x5c;
-		}
-		for (i = key_size;i < HMAC_BLOCK_SIZE;i++)
-		{
-			data2[i] = 0 ^ 0x5c;
-		}
-	}
-	else
-	{
-		for (i = 0;i < HMAC_BLOCK_SIZE;i++)
-		{
-			data2[i] = k[i] ^ 0x5c;
-		}
-	}
-
-	SHA1_Init(&sha_ctx1);
-	SHA1_Update(&sha_ctx1, data2, HMAC_BLOCK_SIZE);
-	SHA1_Update(&sha_ctx1, hash1, SHA1_SIZE);
-	SHA1_Final(dst, &sha_ctx1);
-}
-
-// Calculate the HMAC
-void MdProcess(MD *md, void *dest, void *src, UINT size)
-{
-	int r;
-	// Validate arguments
-	if (md == NULL || dest == NULL || (src != NULL && size == 0))
-	{
-		return;
-	}
-
-	HMAC_Init(md->Ctx, NULL, 0, NULL);
-	HMAC_Update(md->Ctx, src, size);
-
-	r = 0;
-	HMAC_Final(md->Ctx, dest, &r);
-}
-
-// Set the key to the message digest object
-void SetMdKey(MD *md, void *key, UINT key_size)
-{
-	// Validate arguments
-	if (md == NULL || (key != NULL && key_size == 0))
-	{
-		return;
-	}
-
-	HMAC_Init(md->Ctx, key, key_size, md->Md);
+	return Internal_HMac(EVP_sha1(), dst, key, key_size, src, src_size);
 }
 
 // Creating a message digest object
 MD *NewMd(char *name)
 {
+	return NewMdEx(name, true);
+}
+
+MD *NewMdEx(char *name, bool hmac)
+{
 	MD *m;
+
 	// Validate arguments
 	if (name == NULL)
 	{
@@ -489,19 +282,116 @@ MD *NewMd(char *name)
 	m = ZeroMalloc(sizeof(MD));
 
 	StrCpy(m->Name, sizeof(m->Name), name);
-	m->Md = EVP_get_digestbyname(name);
+
+	if (StrCmpi(name, "[null-digest]") == 0 ||
+		StrCmpi(name, "NULL") == 0 ||
+		IsEmptyStr(name))
+	{
+		m->IsNullMd = true;
+		return m;
+	}
+
+	m->Md = (const struct evp_md_st *)EVP_get_digestbyname(name);
 	if (m->Md == NULL)
 	{
+		Debug("NewMdEx(): Algorithm %s not found by EVP_get_digestbyname().\n", m->Name);
 		FreeMd(m);
 		return NULL;
 	}
 
-	m->Ctx = ZeroMalloc(sizeof(struct hmac_ctx_st));
-	HMAC_CTX_init(m->Ctx);
+	m->Size = EVP_MD_size((const EVP_MD *)m->Md);
+	m->IsHMac = hmac;
 
-	m->Size = EVP_MD_size(m->Md);
+	if (hmac)
+	{
+#if OPENSSL_VERSION_NUMBER >= 0x10100000L
+		m->Ctx = HMAC_CTX_new();
+#else
+		m->Ctx = ZeroMalloc(sizeof(struct hmac_ctx_st));
+		HMAC_CTX_init(m->Ctx);
+#endif
+	}
+	else
+	{
+#if OPENSSL_VERSION_NUMBER >= 0x10100000L
+		m->Ctx = EVP_MD_CTX_new();
+#else
+		m->Ctx = EVP_MD_CTX_create();
+#endif
+		if (EVP_DigestInit_ex(m->Ctx, m->Md, NULL) == false)
+		{
+			Debug("NewMdEx(): EVP_DigestInit_ex() failed with error: %s\n", OpenSSL_Error());
+			FreeMd(m);
+		}
+	}
 
 	return m;
+}
+
+// Set the key to the message digest object
+bool SetMdKey(MD *md, void *key, UINT key_size)
+{
+	// Validate arguments
+	if (md == NULL || md->IsHMac == false || key == NULL || key_size == 0)
+	{
+		return false;
+	}
+
+	if (HMAC_Init_ex(md->Ctx, key, key_size, (const EVP_MD *)md->Md, NULL) == false)
+	{
+		Debug("SetMdKey(): HMAC_Init_ex() failed with error: %s\n", OpenSSL_Error());
+		return false;
+	}
+
+	return true;
+}
+
+// Calculate the hash/HMAC
+UINT MdProcess(MD *md, void *dest, void *src, UINT size)
+{
+	UINT len = 0;
+
+	// Validate arguments
+	if (md == NULL || md->IsNullMd || dest == NULL || (src == NULL && size != 0))
+	{
+		return 0;
+	}
+
+	if (md->IsHMac)
+	{
+		// WARNING: Do not remove the call to HMAC_Init_ex(), it's required even if the context is initialized by SetMdKey()!
+		if (HMAC_Init_ex(md->Ctx, NULL, 0, NULL, NULL) == false)
+		{
+			Debug("MdProcess(): HMAC_Init_ex() failed with error: %s\n", OpenSSL_Error());
+			return 0;
+		}
+
+		if (HMAC_Update(md->Ctx, src, size) == false)
+		{
+			Debug("MdProcess(): HMAC_Update() failed with error: %s\n", OpenSSL_Error());
+			return 0;
+		}
+
+		if (HMAC_Final(md->Ctx, dest, &len) == false)
+		{
+			Debug("MdProcess(): HMAC_Final() failed with error: %s\n", OpenSSL_Error());
+		}
+	}
+	else
+	{
+		if (EVP_DigestUpdate(md->Ctx, src, size) == false)
+		{
+			Debug("MdProcess(): EVP_DigestUpdate() failed with error: %s\n", OpenSSL_Error());
+			return 0;
+		}
+
+		if (EVP_DigestFinal_ex(md->Ctx, dest, &len) == false)
+		{
+			Debug("MdProcess(): EVP_DigestFinal_ex() failed with error: %s\n", OpenSSL_Error());
+		}
+	}
+
+	return len;
 }
 
 // Release of the message digest object
@@ -515,8 +405,23 @@ void FreeMd(MD *md)
 
 	if (md->Ctx != NULL)
 	{
-		HMAC_CTX_cleanup(md->Ctx);
-		Free(md->Ctx);
+		if (md->IsHMac)
+		{
+#if OPENSSL_VERSION_NUMBER >= 0x10100000L
+			HMAC_CTX_free(md->Ctx);
+#else
+			HMAC_CTX_cleanup(md->Ctx);
+			Free(md->Ctx);
+#endif
+		}
+		else
+		{
+#if OPENSSL_VERSION_NUMBER >= 0x10100000L
+			EVP_MD_CTX_free(md->Ctx);
+#else
+			EVP_MD_CTX_destroy(md->Ctx);
+#endif
+		}
 	}
 
 	Free(md);
@@ -547,13 +452,19 @@ CIPHER *NewCipher(char *name)
 	c->Cipher = EVP_get_cipherbyname(c->Name);
 	if (c->Cipher == NULL)
 	{
+		Debug("NewCipher(): Cipher %s not found by EVP_get_cipherbyname().\n", c->Name);
 		FreeCipher(c);
 		return NULL;
 	}
 
+#if OPENSSL_VERSION_NUMBER >= 0x10100000L
+	c->Ctx = EVP_CIPHER_CTX_new();
+#else
 	c->Ctx = ZeroMalloc(sizeof(struct evp_cipher_ctx_st));
 	EVP_CIPHER_CTX_init(c->Ctx);
+#endif
 
+	c->IsAeadCipher = EVP_CIPHER_flags(c->Cipher) & EVP_CIPH_FLAG_AEAD_CIPHER;
 	c->BlockSize = EVP_CIPHER_block_size(c->Cipher);
 	c->KeySize = EVP_CIPHER_key_length(c->Cipher);
 	c->IvSize = EVP_CIPHER_iv_length(c->Cipher);
@@ -618,6 +529,74 @@ UINT CipherProcess(CIPHER *c, void *iv, void *dest, void *src, UINT size)
 	return r + r2;
 }
 
+// Process encryption / decryption (AEAD)
+UINT CipherProcessAead(CIPHER *c, void *iv, void *tag, UINT tag_size, void *dest, void *src, UINT src_size, void *aad, UINT aad_size)
+{
+	int r = src_size;
+	int r2 = 0;
+	// Validate arguments
+	if (c == NULL)
+	{
+		return 0;
+	}
+	else if (c->IsNullCipher)
+	{
+		Copy(dest, src, src_size);
+		return src_size;
+	}
+	else if (c->IsAeadCipher == false || iv == NULL || tag == NULL || tag_size == 0 || dest == NULL || src == NULL || src_size == 0)
+	{
+		return 0;
+	}
+
+	if (EVP_CipherInit_ex(c->Ctx, NULL, NULL, NULL, iv, c->Encrypt) == false)
+	{
+		Debug("CipherProcessAead(): EVP_CipherInit_ex() failed with error: %s\n", OpenSSL_Error());
+		return 0;
+	}
+
+	if (c->Encrypt == false)
+	{
+		if (EVP_CIPHER_CTX_ctrl(c->Ctx, EVP_CTRL_AEAD_SET_TAG, tag_size, tag) == false)
+		{
+			Debug("CipherProcessAead(): EVP_CIPHER_CTX_ctrl() failed to set the tag!\n");
+			return 0;
+		}
+	}
+
+	if (aad != NULL && aad_size != 0)
+	{
+		if (EVP_CipherUpdate(c->Ctx, NULL, &r, aad, aad_size) == false)
+		{
+			Debug("CipherProcessAead(): EVP_CipherUpdate() failed with error: %s\n", OpenSSL_Error());
+			return 0;
+		}
+	}
+
+	if (EVP_CipherUpdate(c->Ctx, dest, &r, src, src_size) == false)
+	{
+		Debug("CipherProcessAead(): EVP_CipherUpdate() failed with error: %s\n", OpenSSL_Error());
+		return 0;
+	}
+
+	if (EVP_CipherFinal_ex(c->Ctx, ((UCHAR *)dest) + (UINT)r, &r2) == false)
+	{
+		Debug("CipherProcessAead(): EVP_CipherFinal_ex() failed with error: %s\n", OpenSSL_Error());
+		return 0;
+	}
+
+	if (c->Encrypt)
+	{
+		if (EVP_CIPHER_CTX_ctrl(c->Ctx, EVP_CTRL_AEAD_GET_TAG, tag_size, tag) == false)
+		{
+			Debug("CipherProcessAead(): EVP_CIPHER_CTX_ctrl() failed to get the tag!\n");
+			return 0;
+		}
+	}
+
+	return r + r2;
+}
+
 // Release of the cipher object
 void FreeCipher(CIPHER *c)
 {
@@ -629,238 +608,54 @@ void FreeCipher(CIPHER *c)
 
 	if (c->Ctx != NULL)
 	{
+#if OPENSSL_VERSION_NUMBER >= 0x10100000L
+		EVP_CIPHER_CTX_free(c->Ctx);
+#else
 		EVP_CIPHER_CTX_cleanup(c->Ctx);
 		Free(c->Ctx);
+#endif
 	}
 
 	Free(c);
-}
-
-// Verify whether the certificate is disabled by CRL in a particular directory
-bool IsXRevoked(X *x)
-{
-	char dirname[MAX_PATH];
-	UINT i;
-	bool ret = false;
-	DIRLIST *t;
-	// Validate arguments
-	if (x == NULL)
-	{
-		return false;
-	}
-
-	GetExeDir(dirname, sizeof(dirname));
-
-	// Search the CRL file
-	t = EnumDir(dirname);
-
-	for (i = 0;i < t->NumFiles;i++)
-	{
-		char *name = t->File[i]->FileName;
-		if (t->File[i]->Folder == false)
-		{
-			if (EndWith(name, ".crl"))
-			{
-				char filename[MAX_PATH];
-				X_CRL *r;
-
-				ConbinePath(filename, sizeof(filename), dirname, name);
-
-				r = FileToXCrl(filename);
-
-				if (r != NULL)
-				{
-					if (IsXRevokedByXCrl(x, r))
-					{
-						ret = true;
-					}
-
-					FreeXCrl(r);
-				}
-			}
-		}
-	}
-
-	FreeDir(t);
-
-	return ret;
-}
-
-// Verify whether the certificate is disabled by the CRL
-bool IsXRevokedByXCrl(X *x, X_CRL *r)
-{
-#ifdef	OS_WIN32
-	X509_REVOKED tmp;
-	X509_CRL_INFO *info;
-	int index;
-	// Validate arguments
-	if (x == NULL || r == NULL)
-	{
-		return false;
-	}
-
-	Zero(&tmp, sizeof(tmp));
-	tmp.serialNumber = X509_get_serialNumber(x->x509);
-
-	info = r->Crl->crl;
-
-	if (sk_X509_REVOKED_is_sorted(info->revoked) == false)
-	{
-		sk_X509_REVOKED_sort(info->revoked);
-	}
-
-	index = sk_X509_REVOKED_find(info->revoked, &tmp);
-
-	if (index < 0)
-	{
-		return false;
-	}
-	else
-	{
-		return true;
-	}
-#else	// OS_WIN32
-	return false;
-#endif	// OS_WIN32
-}
-
-// Release of the CRL
-void FreeXCrl(X_CRL *r)
-{
-	// Validate arguments
-	if (r == NULL)
-	{
-		return;
-	}
-
-	X509_CRL_free(r->Crl);
-
-	Free(r);
-}
-
-// Convert a file to a CRL
-X_CRL *FileToXCrl(char *filename)
-{
-	wchar_t *filename_w = CopyStrToUni(filename);
-	X_CRL *ret = FileToXCrlW(filename_w);
-
-	Free(filename_w);
-
-	return ret;
-}
-X_CRL *FileToXCrlW(wchar_t *filename)
-{
-	BUF *b;
-	X_CRL *r;
-	// Validate arguments
-	if (filename == NULL)
-	{
-		return NULL;
-	}
-
-	b = ReadDumpW(filename);
-	if (b == NULL)
-	{
-		return NULL;
-	}
-
-	r = BufToXCrl(b);
-
-	FreeBuf(b);
-
-	return r;
-}
-
-// Convert the buffer to the CRL
-X_CRL *BufToXCrl(BUF *b)
-{
-	X_CRL *r;
-	X509_CRL *x509crl;
-	BIO *bio;
-	// Validate arguments
-	if (b == NULL)
-	{
-		return NULL;
-	}
-
-	bio = BufToBio(b);
-	if (bio == NULL)
-	{
-		return NULL;
-	}
-
-	x509crl	= NULL;
-
-	if (d2i_X509_CRL_bio(bio, &x509crl) == NULL || x509crl == NULL)
-	{
-		FreeBio(bio);
-		return NULL;
-	}
-
-	r = ZeroMalloc(sizeof(X_CRL));
-	r->Crl = x509crl;
-
-	FreeBio(bio);
-
-	return r;
-}
-
-// Convert the buffer to the public key
-K *RsaBinToPublic(void *data, UINT size)
-{
-	RSA *rsa;
-	K *k;
-	BIO *bio;
-	// Validate arguments
-	if (data == NULL || size < 4)
-	{
-		return NULL;
-	}
-
-	rsa = RSA_new();
-
-	if (rsa->e != NULL)
-	{
-		BN_free(rsa->e);
-	}
-
-	rsa->e = BN_new();
-	BN_set_word(rsa->e, RSA_F4);
-
-	if (rsa->n != NULL)
-	{
-		BN_free(rsa->n);
-	}
-
-	rsa->n = BinToBigNum(data, size);
-
-	bio = NewBio();
-	Lock(openssl_lock);
-	{
-		i2d_RSA_PUBKEY_bio(bio, rsa);
-	}
-	Unlock(openssl_lock);
-	BIO_seek(bio, 0);
-	k = BioToK(bio, false, false, NULL);
-	FreeBio(bio);
-
-	RSA_free(rsa);
-
-	return k;
 }
 
 // Convert the public key to a buffer
 BUF *RsaPublicToBuf(K *k)
 {
 	BUF *b;
+#if OPENSSL_VERSION_NUMBER >= 0x10100000L
+	RSA *rsa;
+	const BIGNUM *n;
+#endif
 	// Validate arguments
-	if (k == NULL || k->pkey == NULL || k->pkey->pkey.rsa == NULL
-		|| k->pkey->pkey.rsa->n == NULL)
+	if (k == NULL || k->pkey == NULL)
+	{
+		return NULL;
+	}
+
+#if OPENSSL_VERSION_NUMBER >= 0x10100000L
+	rsa = EVP_PKEY_get0_RSA(k->pkey);
+	if (rsa == NULL)
+	{
+		return NULL;
+	}
+
+	RSA_get0_key(rsa, &n, NULL, NULL);
+	if (n == NULL)
+	{
+		return NULL;
+	}
+
+	b = BigNumToBuf(n);
+#else
+	if (k->pkey->pkey.rsa == NULL || k->pkey->pkey.rsa->n == NULL)
 	{
 		return NULL;
 	}
 
 	b = BigNumToBuf(k->pkey->pkey.rsa->n);
+#endif
+
 	if (b == NULL)
 	{
 		return NULL;
@@ -869,41 +664,13 @@ BUF *RsaPublicToBuf(K *k)
 	return b;
 }
 
-// Convert the public key to a binary
-void RsaPublicToBin(K *k, void *data)
-{
-	BUF *b;
-	// Validate arguments
-	if (k == NULL || k->pkey == NULL || k->pkey->pkey.rsa == NULL
-		|| k->pkey->pkey.rsa->n == NULL || data == NULL)
-	{
-		return;
-	}
-
-	b = BigNumToBuf(k->pkey->pkey.rsa->n);
-	if (b == NULL)
-	{
-		return;
-	}
-
-	Copy(data, b->Buf, b->Size);
-
-	FreeBuf(b);
-}
-
 // Get public key size
 UINT RsaPublicSize(K *k)
 {
 	BUF *b;
 	UINT ret;
-	// Validate arguments
-	if (k == NULL || k->pkey == NULL || k->pkey->pkey.rsa == NULL
-		|| k->pkey->pkey.rsa->n == NULL)
-	{
-		return 0;
-	}
 
-	b = BigNumToBuf(k->pkey->pkey.rsa->n);
+	b = RsaPublicToBuf(k);
 	if (b == NULL)
 	{
 		return 0;
@@ -914,21 +681,6 @@ UINT RsaPublicSize(K *k)
 	FreeBuf(b);
 
 	return ret;
-}
-
-// Stupid test
-void CertTest2()
-{
-}
-
-// Yagi test
-void CertTest()
-{
-}
-
-// Test function related to certificate
-void CertTest_()
-{
 }
 
 // Hash a pointer to a 32-bit
@@ -942,7 +694,7 @@ UINT HashPtrToUINT(void *p)
 		return 0;
 	}
 
-	Hash(hash_data, &p, sizeof(p), false);
+	Md5(hash_data, &p, sizeof(p));
 
 	Copy(&ret, hash_data, sizeof(ret));
 
@@ -962,33 +714,6 @@ NAME *CopyName(NAME *n)
 		n->Country, n->State, n->Local);
 }
 
-// Convert a BIGNUM to a string
-char *BigNumToStr(BIGNUM *bn)
-{
-	BIO *bio;
-	BUF *b;
-	char *ret;
-	// Validate arguments
-	if (bn == NULL)
-	{
-		return NULL;
-	}
-
-	bio = NewBio();
-
-	BN_print(bio, bn);
-
-	b = BioToBuf(bio);
-
-	FreeBio(bio);
-
-	ret = ZeroMalloc(b->Size + 1);
-	Copy(ret, b->Buf, b->Size);
-	FreeBuf(b);
-
-	return ret;
-}
-
 // Convert the binary to the BIGNUM
 BIGNUM *BinToBigNum(void *data, UINT size)
 {
@@ -1005,19 +730,8 @@ BIGNUM *BinToBigNum(void *data, UINT size)
 	return bn;
 }
 
-// Convert the buffer to a BIGNUM
-BIGNUM *BufToBigNum(BUF *b)
-{
-	if (b == NULL)
-	{
-		return NULL;
-	}
-
-	return BinToBigNum(b->Buf, b->Size);
-}
-
 // Convert a BIGNUM to a buffer
-BUF *BigNumToBuf(BIGNUM *bn)
+BUF *BigNumToBuf(const BIGNUM *bn)
 {
 	UINT size;
 	UCHAR *tmp;
@@ -1098,6 +812,11 @@ unsigned long OpenSSL_Id(void)
 	return (unsigned long)ThreadId();
 }
 
+char *OpenSSL_Error()
+{
+	return ERR_error_string(ERR_get_error(), NULL);
+}
+
 // Get the display name of the certificate
 void GetPrintNameFromX(wchar_t *str, UINT size, X *x)
 {
@@ -1119,29 +838,6 @@ void GetPrintNameFromXA(char *str, UINT size, X *x)
 	}
 
 	GetPrintNameFromX(tmp, sizeof(tmp), x);
-
-	UniToStr(str, size, tmp);
-}
-void GetAllNameFromXEx(wchar_t *str, UINT size, X *x)
-{
-	// Validate arguments
-	if (x == NULL || str == NULL)
-	{
-		return;
-	}
-
-	GetAllNameFromNameEx(str, size, x->subject_name);
-}
-void GetAllNameFromXExA(char *str, UINT size, X *x)
-{
-	wchar_t tmp[MAX_SIZE];
-	// Validate arguments
-	if (str == NULL || x == NULL)
-	{
-		return;
-	}
-
-	GetAllNameFromXEx(tmp, sizeof(tmp), x);
 
 	UniToStr(str, size, tmp);
 }
@@ -1219,18 +915,6 @@ void GetAllNameFromX(wchar_t *str, UINT size, X *x)
 
 	UniFormat(tmp3, sizeof(tmp3), L" (Digest: MD5=\"%S\", SHA1=\"%S\")", tmp1, tmp2);
 	UniStrCat(str, size, tmp3);
-}
-void GetAllNameFromA(char *str, UINT size, X *x)
-{
-	wchar_t tmp[MAX_SIZE];
-	// Validate arguments
-	if (str == NULL || x == NULL)
-	{
-		return;
-	}
-
-	GetAllNameFromX(tmp, sizeof(tmp), x);
-	UniToStr(str, size, tmp);
 }
 
 // Get the all name strings from NAME
@@ -1483,13 +1167,6 @@ bool ParseP12(P12 *p12, X **x, K **k, char *password)
 }
 
 // Write the P12 to a file
-bool P12ToFile(P12 *p12, char *filename)
-{
-	wchar_t *filename_w = CopyStrToUni(filename);
-	bool ret = P12ToFileW(p12, filename_w);
-
-	return ret;
-}
 bool P12ToFileW(P12 *p12, wchar_t *filename)
 {
 	BUF *b;
@@ -1514,38 +1191,6 @@ bool P12ToFileW(P12 *p12, wchar_t *filename)
 	FreeBuf(b);
 
 	return true;
-}
-
-// Read a P12 from the file
-P12 *FileToP12(char *filename)
-{
-	wchar_t *filename_w = CopyStrToUni(filename);
-	P12 *ret = FileToP12W(filename_w);
-
-	Free(filename_w);
-
-	return ret;
-}
-P12 *FileToP12W(wchar_t *filename)
-{
-	BUF *b;
-	P12 *p12;
-	// Validate arguments
-	if (filename == NULL)
-	{
-		return NULL;
-	}
-
-	b = ReadDumpW(filename);
-	if (b == NULL)
-	{
-		return NULL;
-	}
-
-	p12 = BufToP12(b);
-	FreeBuf(b);
-
-	return p12;
 }
 
 // Release of P12
@@ -1682,33 +1327,6 @@ P12 *PKCS12ToP12(PKCS12 *pkcs12)
 	return p12;
 }
 
-// Convert a binary to a string
-char *ByteToStr(BYTE *src, UINT src_size)
-{
-	UINT size;
-	char *dst;
-	UINT i;
-	// Validate arguments
-	if (src == NULL)
-	{
-		return NULL;
-	}
-
-	size = MAX(src_size * 3, 1);
-	dst = Malloc(size);
-	dst[size - 1] = 0;
-	for (i = 0;i < src_size;i++)
-	{
-		char tmp[3];
-		Format(tmp, sizeof(tmp), "%02x", src[i]);
-		dst[i * 3 + 0] = tmp[0];
-		dst[i * 3 + 1] = tmp[1];
-		dst[i * 3 + 2] = ((i == (src_size - 1) ? 0 : ' '));
-	}
-
-	return dst;
-}
-
 // Release of X_SERIAL
 void FreeXSerial(X_SERIAL *serial)
 {
@@ -1816,6 +1434,40 @@ UINT GetDaysUntil2038()
 	else
 	{
 		return (UINT)((target - now) / (UINT64)(1000 * 60 * 60 * 24));
+	}
+}
+UINT GetDaysUntil2038Ex()
+{
+	SYSTEMTIME now;
+
+	Zero(&now, sizeof(now));
+	SystemTime(&now);
+
+	if (now.wYear >= 2030)
+	{
+		UINT64 now = SystemTime64();
+		UINT64 target;
+		SYSTEMTIME st;
+
+		Zero(&st, sizeof(st));
+		st.wYear = 2049;
+		st.wMonth = 12;
+		st.wDay = 30;
+
+		target = SystemToUINT64(&st);
+
+		if (now >= target)
+		{
+			return 0;
+		}
+		else
+		{
+			return (UINT)((target - now) / (UINT64)(1000 * 60 * 60 * 24));
+		}
+	}
+	else
+	{
+		return GetDaysUntil2038();
 	}
 }
 
@@ -1956,6 +1608,7 @@ X509 *NewX509(K *pub, K *priv, X *ca, NAME *name, UINT days, X_SERIAL *serial)
 	X509_EXTENSION *ex = NULL;
 	X509_EXTENSION *eku = NULL;
 	X509_EXTENSION *busage = NULL;
+	ASN1_INTEGER *s;
 	// Validate arguments
 	if (pub == NULL || name == NULL || ca == NULL)
 	{
@@ -2018,19 +1671,17 @@ X509 *NewX509(K *pub, K *priv, X *ca, NAME *name, UINT days, X_SERIAL *serial)
 	FreeX509Name(subject_name);
 
 	// Set the Serial Number
+	s = X509_get_serialNumber(x509);
+	OPENSSL_free(s->data);
 	if (serial == NULL)
 	{
 		char zero = 0;
-		ASN1_INTEGER *s = x509->cert_info->serialNumber;
-		OPENSSL_free(s->data);
 		s->data = OPENSSL_malloc(sizeof(char));
 		Copy(s->data, &zero, sizeof(char));
 		s->length = sizeof(char);
 	}
 	else
 	{
-		ASN1_INTEGER *s = x509->cert_info->serialNumber;
-		OPENSSL_free(s->data);
 		s->data = OPENSSL_malloc(serial->size);
 		Copy(s->data, serial->data, serial->size);
 		s->length = serial->size;
@@ -2059,6 +1710,18 @@ X509 *NewX509(K *pub, K *priv, X *ca, NAME *name, UINT days, X_SERIAL *serial)
 		X509_EXTENSION_free(eku);
 	}
 
+	// Alternative subject name
+	if (UniIsEmptyStr(name->CommonName) == false)
+	{
+		char alt_dns[MAX_PATH];
+
+		Format(alt_dns, sizeof(alt_dns), "DNS.1:%S", name->CommonName);
+
+		ex = X509V3_EXT_conf_nid(NULL, NULL, NID_subject_alt_name,	alt_dns);
+		X509_add_ext(x509, ex, -1);
+		X509_EXTENSION_free(ex);
+	}
+
 	Lock(openssl_lock);
 	{
 		// Set the public key
@@ -2083,6 +1746,7 @@ X509 *NewRootX509(K *pub, K *priv, NAME *name, UINT days, X_SERIAL *serial)
 	X509_EXTENSION *ex = NULL;
 	X509_EXTENSION *eku = NULL;
 	X509_EXTENSION *busage = NULL;
+	ASN1_INTEGER *s;
 	// Validate arguments
 	if (pub == NULL || name == NULL || priv == NULL)
 	{
@@ -2150,19 +1814,17 @@ X509 *NewRootX509(K *pub, K *priv, NAME *name, UINT days, X_SERIAL *serial)
 	FreeX509Name(issuer_name);
 
 	// Set a Serial Number
+	s = X509_get_serialNumber(x509);
+	OPENSSL_free(s->data);
 	if (serial == NULL)
 	{
 		char zero = 0;
-		ASN1_INTEGER *s = x509->cert_info->serialNumber;
-		OPENSSL_free(s->data);
 		s->data = OPENSSL_malloc(sizeof(char));
 		Copy(s->data, &zero, sizeof(char));
 		s->length = sizeof(char);
 	}
 	else
 	{
-		ASN1_INTEGER *s = x509->cert_info->serialNumber;
-		OPENSSL_free(s->data);
 		s->data = OPENSSL_malloc(serial->size);
 		Copy(s->data, serial->data, serial->size);
 		s->length = serial->size;
@@ -2360,8 +2022,8 @@ void LoadXDates(X *x)
 		return;
 	}
 
-	x->notBefore = Asn1TimeToUINT64(x->x509->cert_info->validity->notBefore);
-	x->notAfter = Asn1TimeToUINT64(x->x509->cert_info->validity->notAfter);
+	x->notBefore = Asn1TimeToUINT64((ASN1_TIME *)X509_get0_notBefore(x->x509));
+	x->notAfter = Asn1TimeToUINT64((ASN1_TIME *)X509_get0_notAfter(x->x509));
 }
 
 // Convert the 64bit system time to ASN1 time
@@ -2465,6 +2127,9 @@ bool Asn1TimeToSystem(SYSTEMTIME *s, void *asn1_time)
 // Convert the string to the system time
 bool StrToSystem(SYSTEMTIME *s, char *str)
 {
+	char century[3] = {0, 0, 0};
+	bool fourdigityear = false;
+
 	// Validate arguments
 	if (s == NULL || str == NULL)
 	{
@@ -2472,7 +2137,17 @@ bool StrToSystem(SYSTEMTIME *s, char *str)
 	}
 	if (StrLen(str) != 13)
 	{
-		return false;
+		if (StrLen(str) != 15)
+		{
+			return false;
+		}
+
+		// Year has 4 digits - save first two and use the rest
+		// as if it had two digits
+		fourdigityear = true;
+		century[0] = str[0];
+		century[1] = str[1];
+		str += 2;
 	}
 	if (str[12] != 'Z')
 	{
@@ -2489,7 +2164,11 @@ bool StrToSystem(SYSTEMTIME *s, char *str)
 			second[3] = {str[10], str[11], 0};
 		Zero(s, sizeof(SYSTEMTIME));
 		s->wYear = ToInt(year);
-		if (s->wYear >= 60)
+		if (fourdigityear)
+		{
+			s->wYear += ToInt(century) * 100;
+		}
+		else if (s->wYear >= 60)
 		{
 			s->wYear += 1900;
 		}
@@ -2513,6 +2192,7 @@ bool RsaVerify(void *data, UINT data_size, void *sign, K *k)
 {
 	return RsaVerifyEx(data, data_size, sign, k, 0);
 }
+
 bool RsaVerifyEx(void *data, UINT data_size, void *sign, K *k, UINT bits)
 {
 	UCHAR hash_data[SIGN_HASH_SIZE];
@@ -2524,7 +2204,7 @@ bool RsaVerifyEx(void *data, UINT data_size, void *sign, K *k, UINT bits)
 	}
 	if (bits == 0)
 	{
-		bits = 1024;
+		bits = RSA_KEY_SIZE;
 	}
 
 	// Hash the data
@@ -2534,7 +2214,7 @@ bool RsaVerifyEx(void *data, UINT data_size, void *sign, K *k, UINT bits)
 	}
 
 	// Decode the signature
-	if (RSA_public_decrypt(bits / 8, sign, decrypt_data, k->pkey->pkey.rsa, RSA_PKCS1_PADDING) <= 0)
+	if (RSA_public_decrypt(bits / 8, sign, decrypt_data, EVP_PKEY_get0_RSA(k->pkey), RSA_PKCS1_PADDING) <= 0)
 	{
 		return false;
 	}
@@ -2557,13 +2237,13 @@ bool RsaSignEx(void *dst, void *src, UINT size, K *k, UINT bits)
 {
 	UCHAR hash[SIGN_HASH_SIZE];
 	// Validate arguments
-	if (dst == NULL || src == NULL || k == NULL || k->pkey->type != EVP_PKEY_RSA)
+	if (dst == NULL || src == NULL || k == NULL || EVP_PKEY_base_id(k->pkey) != EVP_PKEY_RSA)
 	{
 		return false;
 	}
 	if (bits == 0)
 	{
-		bits = 1024;
+		bits = RSA_KEY_SIZE;
 	}
 
 	Zero(dst, bits / 8);
@@ -2575,7 +2255,7 @@ bool RsaSignEx(void *dst, void *src, UINT size, K *k, UINT bits)
 	}
 
 	// Signature
-	if (RSA_private_encrypt(sizeof(hash), hash, dst, k->pkey->pkey.rsa, RSA_PKCS1_PADDING) <= 0)
+	if (RSA_private_encrypt(sizeof(hash), hash, dst, EVP_PKEY_get0_RSA(k->pkey), RSA_PKCS1_PADDING) <= 0)
 	{
 		return false;
 	}
@@ -2602,125 +2282,7 @@ bool HashForSign(void *dst, UINT dst_size, void *src, UINT src_size)
 	Copy(buf, sign_data, sizeof(sign_data));
 
 	// Hash
-	HashSha1(HASHED_DATA(buf), src, src_size);
-
-	return true;
-}
-
-// Decrypt with the RSA public key
-bool RsaPublicDecrypt(void *dst, void *src, UINT size, K *k)
-{
-	void *tmp;
-	int ret;
-	// Validate arguments
-	if (src == NULL || size == 0 || k == NULL)
-	{
-		return false;
-	}
-
-	tmp = ZeroMalloc(size);
-	Lock(openssl_lock);
-	{
-		ret = RSA_public_decrypt(size, src, tmp, k->pkey->pkey.rsa, RSA_NO_PADDING);
-	}
-	Unlock(openssl_lock);
-	if (ret <= 0)
-	{
-/*		Debug("RSA Error: 0x%x\n",
-			ERR_get_error());
-*/		Free(tmp);
-		return false;
-	}
-
-	Copy(dst, tmp, size);
-	Free(tmp);
-
-	return true;
-}
-
-// Encrypt with the RSA private key
-bool RsaPrivateEncrypt(void *dst, void *src, UINT size, K *k)
-{
-	void *tmp;
-	int ret;
-	// Validate arguments
-	if (src == NULL || size == 0 || k == NULL)
-	{
-		return false;
-	}
-
-	tmp = ZeroMalloc(size);
-	Lock(openssl_lock);
-	{
-		ret = RSA_private_encrypt(size, src, tmp, k->pkey->pkey.rsa, RSA_NO_PADDING);
-	}
-	Unlock(openssl_lock);
-	if (ret <= 0)
-	{
-/*		Debug("RSA Error: %u\n",
-			ERR_GET_REASON(ERR_get_error()));
-*/		Free(tmp);
-		return false;
-	}
-
-	Copy(dst, tmp, size);
-	Free(tmp);
-
-	return true;
-}
-
-// Decrypt with the RSA private key
-bool RsaPrivateDecrypt(void *dst, void *src, UINT size, K *k)
-{
-	void *tmp;
-	int ret;
-	// Validate arguments
-	if (src == NULL || size == 0 || k == NULL)
-	{
-		return false;
-	}
-
-	tmp = ZeroMalloc(size);
-	Lock(openssl_lock);
-	{
-		ret = RSA_private_decrypt(size, src, tmp, k->pkey->pkey.rsa, RSA_NO_PADDING);
-	}
-	Unlock(openssl_lock);
-	if (ret <= 0)
-	{
-		return false;
-	}
-
-	Copy(dst, tmp, size);
-	Free(tmp);
-
-	return true;
-}
-
-// Encrypt with the RSA public key
-bool RsaPublicEncrypt(void *dst, void *src, UINT size, K *k)
-{
-	void *tmp;
-	int ret;
-	// Validate arguments
-	if (src == NULL || size == 0 || k == NULL)
-	{
-		return false;
-	}
-
-	tmp = ZeroMalloc(size);
-	Lock(openssl_lock);
-	{
-		ret = RSA_public_encrypt(size, src, tmp, k->pkey->pkey.rsa, RSA_NO_PADDING);
-	}
-	Unlock(openssl_lock);
-	if (ret <= 0)
-	{
-		return false;
-	}
-
-	Copy(dst, tmp, size);
-	Free(tmp);
+	Sha1(HASHED_DATA(buf), src, src_size);
 
 	return true;
 }
@@ -2745,23 +2307,35 @@ bool RsaCheckEx()
 }
 bool RsaCheck()
 {
-	RSA *rsa;
+	int ret = 0;
+	RSA *rsa = NULL;
+	BIGNUM *e = NULL;
 	K *priv_key, *pub_key;
 	BIO *bio;
 	char errbuf[MAX_SIZE];
 	UINT size = 0;
-	UINT bit = 32;
-	// Validate arguments
+	UINT bit = RSA_KEY_SIZE;
+
+	e = BN_new();
+	ret = BN_set_word(e, RSA_F4);
+	if (ret == 0)
+	{
+		BN_free(e);
+		Debug("BN_set_word: err=%s\n", ERR_error_string(ERR_get_error(), errbuf));
+		return false;
+	}
 
 	// Key generation
 	Lock(openssl_lock);
 	{
-		rsa = RSA_generate_key(bit, RSA_F4, NULL, NULL);
+		rsa = RSA_new();
+		ret = RSA_generate_key_ex(rsa, bit, e, NULL);
+		BN_free(e);
 	}
 	Unlock(openssl_lock);
-	if (rsa == NULL)
+	if (ret == 0)
 	{
-		Debug("RSA_generate_key: err=%s\n", ERR_error_string(ERR_get_error(), errbuf));
+		Debug("RSA_generate_key_ex: err=%s\n", ERR_error_string(ERR_get_error(), errbuf));
 		return false;
 	}
 
@@ -2808,7 +2382,9 @@ bool RsaCheck()
 // Generation of RSA key
 bool RsaGen(K **priv, K **pub, UINT bit)
 {
-	RSA *rsa;
+	int ret = 0;
+	RSA *rsa = NULL;
+	BIGNUM *e = NULL;
 	K *priv_key, *pub_key;
 	BIO *bio;
 	char errbuf[MAX_SIZE];
@@ -2820,18 +2396,29 @@ bool RsaGen(K **priv, K **pub, UINT bit)
 	}
 	if (bit == 0)
 	{
-		bit = 1024;
+		bit = RSA_KEY_SIZE;
+	}
+
+	e = BN_new();
+	ret = BN_set_word(e, RSA_F4);
+	if (ret == 0)
+	{
+		BN_free(e);
+		Debug("BN_set_word: err=%s\n", ERR_error_string(ERR_get_error(), errbuf));
+		return false;
 	}
 
 	// Key generation
 	Lock(openssl_lock);
 	{
-		rsa = RSA_generate_key(bit, RSA_F4, NULL, NULL);
+		rsa = RSA_new();
+		ret = RSA_generate_key_ex(rsa, bit, e, NULL);
+		BN_free(e);
 	}
 	Unlock(openssl_lock);
-	if (rsa == NULL)
+	if (ret == 0)
 	{
-		Debug("RSA_generate_key: err=%s\n", ERR_error_string(ERR_get_error(), errbuf));
+		Debug("RSA_generate_key_ex: err=%s\n", ERR_error_string(ERR_get_error(), errbuf));
 		return false;
 	}
 
@@ -2876,10 +2463,6 @@ bool RsaGen(K **priv, K **pub, UINT bit)
 }
 
 // Confirm whether the certificate X is signed by the issuer of the certificate x_issuer
-bool CheckX(X *x, X *x_issuer)
-{
-	return CheckXEx(x, x_issuer, false, false);
-}
 bool CheckXEx(X *x, X *x_issuer, bool check_name, bool check_date)
 {
 	K *k;
@@ -3258,17 +2841,6 @@ bool XToFileW(X *x, wchar_t *filename, bool text)
 }
 
 // Read a K from the file
-K *FileToK(char *filename, bool private_key, char *password)
-{
-	wchar_t *filename_w = CopyStrToUni(filename);
-	K *ret;
-
-	ret = FileToKW(filename_w, private_key, password);
-
-	Free(filename_w);
-
-	return ret;
-}
 K *FileToKW(wchar_t *filename, bool private_key, char *password)
 {
 	bool text;
@@ -3306,15 +2878,6 @@ K *FileToKW(wchar_t *filename, bool private_key, char *password)
 }
 
 // Save the K to a file
-bool KToFile(K *k, char *filename, bool text, char *password)
-{
-	wchar_t *filename_w = CopyStrToUni(filename);
-	bool ret = KToFileW(k, filename_w, text, password);
-
-	Free(filename_w);
-
-	return ret;
-}
 bool KToFileW(K *k, wchar_t *filename, bool text, char *password)
 {
 	BUF *b;
@@ -3785,39 +3348,6 @@ X *BufToX(BUF *b, bool text)
 	return x;
 }
 
-// Create a new buffer by skipping the contents of the buffer to the specified string
-BUF *SkipBufBeforeString(BUF *b, char *str)
-{
-	char *tmp;
-	UINT tmp_size;
-	BUF *ret;
-	UINT i;
-	UINT offset = 0;
-	// Validate arguments
-	if (b == NULL || str == NULL)
-	{
-		return NULL;
-	}
-
-	tmp_size = b->Size + 1;
-	tmp = ZeroMalloc(tmp_size);
-	Copy(tmp, b->Buf, b->Size);
-
-	i = SearchStrEx(tmp, str, 0, false);
-	if (i != INFINITE)
-	{
-		offset = i;
-	}
-
-	ret = NewBuf();
-	WriteBuf(ret, ((UCHAR *)b->Buf) + offset, b->Size - offset);
-	SeekBuf(ret, 0, 0);
-
-	Free(tmp);
-
-	return ret;
-}
-
 // Get a digest of the X
 void GetXDigest(X *x, UCHAR *buf, bool sha1)
 {
@@ -3889,6 +3419,7 @@ X *X509ToX(X509 *x509)
 	BUF *b;
 	UINT size;
 	UINT type;
+	ASN1_INTEGER *s;
 	// Validate arguments
 	if (x509 == NULL)
 	{
@@ -3940,8 +3471,11 @@ X *X509ToX(X509 *x509)
 				{
 					if (OBJ_obj2nid(ad->method) == NID_ad_ca_issuers && ad->location->type == GEN_URI)
 					{
+#if OPENSSL_VERSION_NUMBER >= 0x10100000L
+						char *uri = (char *)ASN1_STRING_get0_data(ad->location->d.uniformResourceIdentifier);
+#else
 						char *uri = (char *)ASN1_STRING_data(ad->location->d.uniformResourceIdentifier);
-
+#endif
 						if (IsEmptyStr(uri) == false)
 						{
 							StrCpy(x->issuer_url, sizeof(x->issuer_url), uri);
@@ -3956,8 +3490,8 @@ X *X509ToX(X509 *x509)
 	}
 
 	// Get the Serial Number
-	x->serial = NewXSerial(x509->cert_info->serialNumber->data,
-		x509->cert_info->serialNumber->length);
+	s = X509_get_serialNumber(x509);
+	x->serial = NewXSerial(s->data, s->length);
 	if (x->serial == NULL)
 	{
 		char zero = 0;
@@ -3974,17 +3508,29 @@ X *X509ToX(X509 *x509)
 	b = KToBuf(k, false, NULL);
 
 	size = b->Size;
-	type = k->pkey->type;
+	type = EVP_PKEY_base_id(k->pkey);
 
 	FreeBuf(b);
-
+	
+	//Fixed to get actual RSA key bits
+	x->bits = EVP_PKEY_bits(k->pkey);
+	
 	FreeK(k);
 
 	if (type == EVP_PKEY_RSA)
 	{
 		x->is_compatible_bit = true;
 
-		switch (size)
+		if(x->bits != 1024 && x->bits != 1536 && x->bits != 2048 && x->bits != 3072 && x->bits != 4096)
+		{
+			x->is_compatible_bit = false;
+		}
+		else
+		{
+			x->is_compatible_bit = true;
+		}
+		
+		/*switch (size)
 		{
 		case 162:
 			x->bits = 1024;
@@ -4009,7 +3555,7 @@ X *X509ToX(X509 *x509)
 		default:
 			x->is_compatible_bit = false;
 			break;
-		}
+		}*/
 	}
 
 	return x;
@@ -4046,7 +3592,7 @@ BUF *BioToBuf(BIO *bio)
 	}
 
 	BIO_seek(bio, 0);
-	size = bio->num_write;
+	size = (UINT)BIO_number_written(bio);
 	tmp = Malloc(size);
 	BIO_read(bio, tmp, size);
 
@@ -4081,12 +3627,6 @@ BIO *BufToBio(BUF *b)
 	Unlock(openssl_lock);
 
 	return bio;
-}
-
-// 128-bit random number generation
-void Rand128(void *buf)
-{
-	Rand(buf, 16);
 }
 
 // 64-bit random number generation
@@ -4141,8 +3681,15 @@ void Rand(void *buf, UINT size)
 // Delete a thread-specific information that OpenSSL has holded
 void FreeOpenSSLThreadState()
 {
-	ERR_remove_state(0);
+#if OPENSSL_VERSION_NUMBER < 0x10100000L
+	CRYPTO_cleanup_all_ex_data();
+	ERR_remove_thread_state(NULL);
+#endif
 }
+
+#if OPENSSL_VERSION_NUMBER < 0x10100000L
+#define SSL_COMP_free_compression_methods() (sk_free(SSL_COMP_get_compression_methods()))
+#endif
 
 // Release the Crypt library
 void FreeCryptLibrary()
@@ -4153,6 +3700,21 @@ void FreeCryptLibrary()
 	openssl_lock = NULL;
 //	RAND_Free_For_SoftEther();
 	OpenSSL_FreeLock();
+
+#ifdef OPENSSL_FIPS
+	FIPS_mode_set(0);
+#endif
+	ENGINE_cleanup();
+	CONF_modules_unload(1);
+	EVP_cleanup();
+
+	FreeOpenSSLThreadState();
+
+	ERR_free_strings();
+
+#ifndef OPENSSL_NO_COMP
+	SSL_COMP_free_compression_methods();
+#endif
 }
 
 // Initialize the Crypt library
@@ -4160,15 +3722,16 @@ void InitCryptLibrary()
 {
 	char tmp[16];
 
-	CheckIfIntelAesNiSupportedInit();
 //	RAND_Init_For_SoftEther()
 	openssl_lock = NewLock();
 	SSL_library_init();
 	//OpenSSL_add_all_algorithms();
 	OpenSSL_add_all_ciphers();
-	SSLeay_add_all_digests();
+	OpenSSL_add_all_digests();
 	ERR_load_crypto_strings();
 	SSL_load_error_strings();
+
+	ssl_clientcert_index = SSL_get_ex_new_index(0, "struct SslClientCertInfo *", NULL, NULL, NULL);
 
 #ifdef	OS_UNIX
 	{
@@ -4217,38 +3780,6 @@ void InitCryptLibrary()
 	openssl_inited = true;
 }
 
-// Hash function
-void Hash(void *dst, void *src, UINT size, bool sha)
-{
-	// Validate arguments
-	if (dst == NULL || (src == NULL && size != 0))
-	{
-		return;
-	}
-
-	if (sha == false)
-	{
-		// MD5 hash
-		MD5(src, size, dst);
-	}
-	else
-	{
-		// SHA hash
-		Internal_SHA0(src, size, dst);
-	}
-}
-
-// MD4 specific hash function
-void HashMd4(void *dst, void *src, UINT size)
-{
-	// Validate arguments
-	if (dst == NULL || (size != 0 && src == NULL))
-	{
-		return;
-	}
-	MD4(src, size, dst);
-}
-
 // Hash with the SHA-1 and convert it to UINT
 UINT HashToUINT(void *data, UINT size)
 {
@@ -4260,35 +3791,13 @@ UINT HashToUINT(void *data, UINT size)
 		return 0;
 	}
 
-	HashSha1(hash, data, size);
+	Sha1(hash, data, size);
 
 	Copy(&u, hash, sizeof(UINT));
 
 	u = Endian32(u);
 
 	return u;
-}
-
-// SHA-1 specific hash function
-void HashSha1(void *dst, void *src, UINT size)
-{
-	// Validate arguments
-	if (dst == NULL || (size != 0 && src == NULL))
-	{
-		return;
-	}
-	SHA1(src, size, dst);
-}
-
-// SHA-256 specific hash function
-void HashSha256(void *dst, void *src, UINT size)
-{
-	// Validate arguments
-	if (dst == NULL || (size != 0 && src == NULL))
-	{
-		return;
-	}
-	SHA256(src, size, dst);
 }
 
 // Creating a new CRYPT object
@@ -4323,49 +3832,7 @@ void Encrypt(CRYPT *c, void *dst, void *src, UINT size)
 	RC4(c->Rc4Key, size, src, dst);
 }
 
-// SHA-1 hash
-void Sha1(void *dst, void *src, UINT size)
-{
-	// Validate arguments
-	if (dst == NULL || src == NULL)
-	{
-		return;
-	}
-
-	SHA1(src, size, dst);
-}
-
-// MD5 hash
-void Md5(void *dst, void *src, UINT size)
-{
-	// Validate arguments
-	if (dst == NULL || src == NULL)
-	{
-		return;
-	}
-
-	MD5(src, size, dst);
-}
-
 // 3DES encryption
-void Des3Encrypt(void *dest, void *src, UINT size, DES_KEY *key, void *ivec)
-{
-	UCHAR ivec_copy[DES_IV_SIZE];
-	// Validate arguments
-	if (dest == NULL || src == NULL || size == 0 || key == NULL || ivec == NULL)
-	{
-		return;
-	}
-
-	Copy(ivec_copy, ivec, DES_IV_SIZE);
-
-	DES_ede3_cbc_encrypt(src, dest, size,
-		key->k1->KeySchedule,
-		key->k2->KeySchedule,
-		key->k3->KeySchedule,
-		(DES_cblock *)ivec_copy,
-		1);
-}
 void Des3Encrypt2(void *dest, void *src, UINT size, DES_KEY_VALUE *k1, DES_KEY_VALUE *k2, DES_KEY_VALUE *k3, void *ivec)
 {
 	UCHAR ivec_copy[DES_IV_SIZE];
@@ -4404,24 +3871,6 @@ void DesEncrypt(void *dest, void *src, UINT size, DES_KEY_VALUE *k, void *ivec)
 }
 
 // 3DES decryption
-void Des3Decrypt(void *dest, void *src, UINT size, DES_KEY *key, void *ivec)
-{
-	UCHAR ivec_copy[DES_IV_SIZE];
-	// Validate arguments
-	if (dest == NULL || src == NULL || size == 0 || key == NULL || ivec == NULL)
-	{
-		return;
-	}
-
-	Copy(ivec_copy, ivec, DES_IV_SIZE);
-
-	DES_ede3_cbc_encrypt(src, dest, size,
-		key->k1->KeySchedule,
-		key->k2->KeySchedule,
-		key->k3->KeySchedule,
-		(DES_cblock *)ivec_copy,
-		0);
-}
 void Des3Decrypt2(void *dest, void *src, UINT size, DES_KEY_VALUE *k1, DES_KEY_VALUE *k2, DES_KEY_VALUE *k3, void *ivec)
 {
 	UCHAR ivec_copy[DES_IV_SIZE];
@@ -4448,7 +3897,7 @@ void DesEcbEncrypt(void *dst, void *src, void *key_7bytes)
 	DES_cblock key;
 	DES_key_schedule ks;
 	// Validate arguments
-	if (dst == NULL || src == NULL || key == NULL)
+	if (dst == NULL || src == NULL || key_7bytes == NULL)
 	{
 		return;
 	}
@@ -4491,77 +3940,6 @@ void DesDecrypt(void *dest, void *src, UINT size, DES_KEY_VALUE *k, void *ivec)
 		0);
 }
 
-// Generate a random 3DES key
-DES_KEY *Des3RandKey()
-{
-	DES_KEY *k = ZeroMalloc(sizeof(DES_KEY));
-
-	k->k1 = DesRandKeyValue();
-	k->k2 = DesRandKeyValue();
-	k->k3 = DesRandKeyValue();
-
-	return k;
-}
-
-// Generate a random DES key
-DES_KEY *DesRandKey()
-{
-	DES_KEY *k = ZeroMalloc(sizeof(DES_KEY));
-
-	k->k1 = DesRandKeyValue();
-	k->k2 = DesNewKeyValue(k->k1->KeyValue);
-	k->k3 = DesNewKeyValue(k->k1->KeyValue);
-
-	return k;
-}
-
-// Release the 3DES key
-void Des3FreeKey(DES_KEY *k)
-{
-	// Validate arguments
-	if (k == NULL)
-	{
-		return;
-	}
-
-	DesFreeKeyValue(k->k1);
-	DesFreeKeyValue(k->k2);
-	DesFreeKeyValue(k->k3);
-
-	Free(k);
-}
-
-// Release the DES key
-void DesFreeKey(DES_KEY *k)
-{
-	Des3FreeKey(k);
-}
-
-// Create a 3DES key
-DES_KEY *Des3NewKey(void *k1, void *k2, void *k3)
-{
-	DES_KEY *k;
-	// Validate arguments
-	if (k1 == NULL || k2 == NULL || k3 == NULL)
-	{
-		return NULL;
-	}
-
-	k = ZeroMalloc(sizeof(DES_KEY));
-
-	k->k1 = DesNewKeyValue(k1);
-	k->k2 = DesNewKeyValue(k2);
-	k->k3 = DesNewKeyValue(k3);
-
-	return k;
-}
-
-// Create a DES key
-DES_KEY *DesNewKey(void *k1)
-{
-	return Des3NewKey(k1, k1, k1);
-}
-
 // Create a new DES key element
 DES_KEY_VALUE *DesNewKeyValue(void *value)
 {
@@ -4581,16 +3959,6 @@ DES_KEY_VALUE *DesNewKeyValue(void *value)
 	DES_set_key_unchecked(value, v->KeySchedule);
 
 	return v;
-}
-
-// Random generation of new DES key element
-DES_KEY_VALUE *DesRandKeyValue()
-{
-	UCHAR key_value[DES_KEY_SIZE];
-
-	DES_random_key((DES_cblock *)key_value);
-
-	return DesNewKeyValue(key_value);
 }
 
 // Release of DES key element
@@ -4648,81 +4016,85 @@ void AesFreeKey(AES_KEY_VALUE *k)
 // AES encryption
 void AesEncrypt(void *dest, void *src, UINT size, AES_KEY_VALUE *k, void *ivec)
 {
-	UCHAR ivec_copy[AES_IV_SIZE];
+	EVP_CIPHER_CTX *ctx = NULL;
+	int dest_len = 0;
+	int len = 0;
+	int ret = 0;
+
 	// Validate arguments
 	if (dest == NULL || src == NULL || size == 0 || k == NULL || ivec == NULL)
 	{
 		return;
 	}
 
-#ifdef	USE_INTEL_AESNI_LIBRARY
-	if (is_intel_aes_supported)
+	// Create and initialize the context
+	ctx = EVP_CIPHER_CTX_new();
+
+	if (!ctx)
 	{
-		AesEncryptWithIntel(dest, src, size, k, ivec);
+		ERR_print_errors_fp(stderr);
 		return;
 	}
-#endif	// USE_INTEL_AESNI_LIBRARY
 
-	Copy(ivec_copy, ivec, AES_IV_SIZE);
+	// Disable padding, as it's handled by IkeEncryptWithPadding()
+	EVP_CIPHER_CTX_set_padding(ctx, false);
 
-	AES_cbc_encrypt(src, dest, size, k->EncryptKey, ivec, 1);
+	// Initialize the encryption operation
+	switch (k->KeySize)
+	{
+	case 16:
+		ret = EVP_EncryptInit_ex(ctx, EVP_aes_128_cbc(), NULL, k->KeyValue, ivec);
+		break;
+
+	case 24:
+		ret = EVP_EncryptInit_ex(ctx, EVP_aes_192_cbc(), NULL, k->KeyValue, ivec);
+		break;
+
+	case 32:
+		ret = EVP_EncryptInit_ex(ctx, EVP_aes_256_cbc(), NULL, k->KeyValue, ivec);
+		break;
+	}
+
+	if (ret != 1)
+	{
+		ERR_print_errors_fp(stderr);
+		EVP_CIPHER_CTX_free(ctx);
+		return;
+	}
+
+	// Provide the message to be encrypted and obtain the cipher output
+	ret = EVP_EncryptUpdate(ctx, dest, &dest_len, src, size);
+
+	if (ret != 1)
+	{
+		ERR_print_errors_fp(stderr);
+		EVP_CIPHER_CTX_free(ctx);
+		return;
+	}
+
+	// Finalize the encryption
+	ret = EVP_EncryptFinal_ex(ctx, (unsigned char *) dest + dest_len, &len);
+
+	if (ret != 1)
+	{
+		ERR_print_errors_fp(stderr);
+		EVP_CIPHER_CTX_free(ctx);
+		return;
+	}
+
+	dest_len += len;
+
+	// Clean up
+	EVP_CIPHER_CTX_free(ctx);
 }
 
 // AES decryption
 void AesDecrypt(void *dest, void *src, UINT size, AES_KEY_VALUE *k, void *ivec)
 {
-	UCHAR ivec_copy[AES_IV_SIZE];
-	// Validate arguments
-	if (dest == NULL || src == NULL || size == 0 || k == NULL || ivec == NULL)
-	{
-		return;
-	}
-
-#ifdef	USE_INTEL_AESNI_LIBRARY
-	if (is_intel_aes_supported)
-	{
-		AesDecryptWithIntel(dest, src, size, k, ivec);
-		return;
-	}
-#endif	// USE_INTEL_AESNI_LIBRARY
-
-	Copy(ivec_copy, ivec, AES_IV_SIZE);
-
-	AES_cbc_encrypt(src, dest, size, k->DecryptKey, ivec, 0);
-}
-
-// Determine whether the Intel AES-NI is supported
-bool IsIntelAesNiSupported()
-{
-	return is_intel_aes_supported;
-}
-void CheckIfIntelAesNiSupportedInit()
-{
-#ifdef	USE_INTEL_AESNI_LIBRARY
-	if (check_for_aes_instructions())
-	{
-		is_intel_aes_supported = true;
-	}
-	else
-	{
-		is_intel_aes_supported = false;
-	}
-#else	// USE_INTEL_AESNI_LIBRARY
-	is_intel_aes_supported = false;
-#endif	// USE_INTEL_AESNI_LIBRARY
-}
-
-// Disable the Intel AES-NI
-void DisableIntelAesAccel()
-{
-	is_intel_aes_supported = false;
-}
-
-#ifdef	USE_INTEL_AESNI_LIBRARY
-// Encrypt AES using the Intel AES-NI
-void AesEncryptWithIntel(void *dest, void *src, UINT size, AES_KEY_VALUE *k, void *ivec)
-{
-	UCHAR ivec_copy[AES_IV_SIZE];
+	EVP_CIPHER_CTX *ctx = NULL;
+	int dest_len = 0;
+	int len = 0;
+	int ret = 0;
 
 	// Validate arguments
 	if (dest == NULL || src == NULL || size == 0 || k == NULL || ivec == NULL)
@@ -4730,119 +4102,95 @@ void AesEncryptWithIntel(void *dest, void *src, UINT size, AES_KEY_VALUE *k, voi
 		return;
 	}
 
-	Copy(ivec_copy, ivec, AES_IV_SIZE);
+	// Create and initialize the context
+	ctx = EVP_CIPHER_CTX_new();
 
+	if (!ctx)
+	{
+		ERR_print_errors_fp(stderr);
+		return;
+	}
+
+	// Disable padding, as it's handled by IkeEncryptWithPadding()
+	EVP_CIPHER_CTX_set_padding(ctx, false);
+
+	// Initialize the decryption operation
 	switch (k->KeySize)
 	{
 	case 16:
-		intel_AES_enc128_CBC(src, dest, k->KeyValue, (size / AES_IV_SIZE), ivec_copy);
+		ret = EVP_DecryptInit_ex(ctx, EVP_aes_128_cbc(), NULL, k->KeyValue, ivec);
 		break;
 
 	case 24:
-		intel_AES_enc192_CBC(src, dest, k->KeyValue, (size / AES_IV_SIZE), ivec_copy);
+		ret = EVP_DecryptInit_ex(ctx, EVP_aes_192_cbc(), NULL, k->KeyValue, ivec);
 		break;
 
 	case 32:
-		intel_AES_enc256_CBC(src, dest, k->KeyValue, (size / AES_IV_SIZE), ivec_copy);
+		ret = EVP_DecryptInit_ex(ctx, EVP_aes_256_cbc(), NULL, k->KeyValue, ivec);
 		break;
 	}
-}
 
-// Decrypt AES using the Intel AES-NI
-void AesDecryptWithIntel(void *dest, void *src, UINT size, AES_KEY_VALUE *k, void *ivec)
-{
-	UCHAR ivec_copy[AES_IV_SIZE];
-
-	// Validate arguments
-	if (dest == NULL || src == NULL || size == 0 || k == NULL || ivec == NULL)
+	if (ret != 1)
 	{
+		ERR_print_errors_fp(stderr);
+		EVP_CIPHER_CTX_free(ctx);
 		return;
 	}
 
-	Copy(ivec_copy, ivec, AES_IV_SIZE);
+	// Provide the message to be decrypted and obtain the plaintext output
+	ret = EVP_DecryptUpdate(ctx, dest, &dest_len, src, size);
 
-	switch (k->KeySize)
+	if (ret != 1)
 	{
-	case 16:
-		intel_AES_dec128_CBC(src, dest, k->KeyValue, (size / AES_IV_SIZE), ivec_copy);
-		break;
-
-	case 24:
-		intel_AES_dec192_CBC(src, dest, k->KeyValue, (size / AES_IV_SIZE), ivec_copy);
-		break;
-
-	case 32:
-		intel_AES_dec256_CBC(src, dest, k->KeyValue, (size / AES_IV_SIZE), ivec_copy);
-		break;
-	}
-}
-#endif	// USE_INTEL_AESNI_LIBRARY
-
-// Calculation of HMAC-SHA-1-96
-void MacSha196(void *dst, void *key, void *data, UINT data_size)
-{
-	UCHAR tmp[HMAC_SHA1_SIZE];
-	// Validate arguments
-	if (dst == NULL || key == NULL || data == NULL)
-	{
+		ERR_print_errors_fp(stderr);
+		EVP_CIPHER_CTX_free(ctx);
 		return;
 	}
 
-	MacSha1(tmp, key, HMAC_SHA1_96_KEY_SIZE, data, data_size);
+	// Finalize the decryption
+	ret = EVP_DecryptFinal_ex(ctx, (unsigned char *) dest + dest_len, &len);
 
-	Copy(dst, tmp, HMAC_SHA1_96_HASH_SIZE);
-}
-
-// Calculation of HMAC-SHA-1
-void MacSha1(void *dst, void *key, UINT key_size, void *data, UINT data_size)
-{
-	UCHAR key_plus[SHA1_BLOCK_SIZE];
-	UCHAR key_plus2[SHA1_BLOCK_SIZE];
-	UCHAR key_plus5[SHA1_BLOCK_SIZE];
-	UCHAR hash4[SHA1_HASH_SIZE];
-	UINT i;
-	BUF *buf3;
-	BUF *buf6;
-	// Validate arguments
-	if (dst == NULL || key == NULL || data == NULL)
+	if (ret != 1)
 	{
+		ERR_print_errors_fp(stderr);
+		EVP_CIPHER_CTX_free(ctx);
 		return;
 	}
 
-	Zero(key_plus, sizeof(key_plus));
-	if (key_size <= SHA1_BLOCK_SIZE)
-	{
-		Copy(key_plus, key, key_size);
-	}
-	else
-	{
-		Sha1(key_plus, key, key_size);
-	}
+	dest_len += len;
 
-	for (i = 0;i < sizeof(key_plus);i++)
-	{
-		key_plus2[i] = key_plus[i] ^ 0x36;
-	}
+	// Clean up
+	EVP_CIPHER_CTX_free(ctx);
+}
 
-	buf3 = NewBuf();
-	WriteBuf(buf3, key_plus2, sizeof(key_plus2));
-	WriteBuf(buf3, data, data_size);
+// Determine whether the AES-NI instruction set is supported by the CPU
+bool IsAesNiSupported()
+{
+	bool supported = false;
 
-	Sha1(hash4, buf3->Buf, buf3->Size);
+	// Unfortunately OpenSSL doesn't provide a function to do it
+#ifdef _MSC_VER
+	int regs[4]; // EAX, EBX, ECX, EDX
+	__cpuid(regs, 1);
+	supported = (regs[2] >> 25) & 1;
+#else // _MSC_VER
+	#if defined(CPU_FEATURES_ARCH_X86)
+		const X86Features features = GetX86Info().features;
+		supported = features.aes;
+	#elif defined(CPU_FEATURES_ARCH_ARM)
+		const ArmFeatures features = GetArmInfo().features;
+		supported = features.aes;
+	#elif defined(CPU_FEATURES_ARCH_AARCH64)
+		const Aarch64Features features = GetAarch64Info().features;
+		supported = features.aes;
+	#elif defined(CPU_FEATURES_ARCH_MIPS)
+		//const MipsFeatures features = GetMipsInfo().features;  // no features.aes
+	#elif defined(CPU_FEATURES_ARCH_PPC)
+		//const PPCFeatures features = GetPPCInfo().features;  // no features.aes
+	#endif
+#endif // _MSC_VER
 
-	for (i = 0;i < sizeof(key_plus);i++)
-	{
-		key_plus5[i] = key_plus[i] ^ 0x5c;
-	}
-
-	buf6 = NewBuf();
-	WriteBuf(buf6, key_plus5, sizeof(key_plus5));
-	WriteBuf(buf6, hash4, sizeof(hash4));
-
-	Sha1(dst, buf6->Buf, buf6->Size);
-
-	FreeBuf(buf3);
-	FreeBuf(buf6);
+	return supported;
 }
 
 // DH calculation
@@ -4885,6 +4233,22 @@ bool DhCompute(DH_CTX *dh, void *dst_priv_key, void *src_pub_key, UINT key_size)
 	return ret;
 }
 
+// Creating a DH 2048bit
+DH_CTX *DhNew2048()
+{
+	return DhNew(DH_SET_2048, 2);
+}
+// Creating a DH 3072bit
+DH_CTX *DhNew3072()
+{
+	return DhNew(DH_SET_3072, 2);
+}
+// Creating a DH 4096bit
+DH_CTX *DhNew4096()
+{
+	return DhNew(DH_SET_4096, 2);
+}
+
 // Creating a DH GROUP1
 DH_CTX *DhNewGroup1()
 {
@@ -4903,35 +4267,34 @@ DH_CTX *DhNewGroup5()
 	return DhNew(DH_GROUP5_PRIME_1536, 2);
 }
 
+
 // Creating a DH SIMPLE 160bits
 DH_CTX *DhNewSimple160()
 {
 	return DhNew(DH_SIMPLE_160, 2);
 }
 
-// Convert the DH parameters to file
-BUF *DhToBuf(DH_CTX *dh)
+DH_CTX *DhNewFromBits(UINT bits)
 {
-	BIO *bio;
-	BUF *buf = NULL;
-	int r;
-	// Validate arguments
-	if (dh == NULL)
+	switch (bits)
 	{
-		return NULL;
+	case 160:
+		return DhNewSimple160();
+	case 768:
+		return DhNewGroup1();
+	case 1024:
+		return DhNewGroup2();
+	case 1536:
+		return DhNewGroup5();
+	case 2048:
+		return DhNew2048();
+	case 3072:
+		return DhNew3072();
+	case 4096:
+		return DhNew4096();
+	default:
+		return DhNew2048();
 	}
-
-	bio = NewBio();
-
-	r = i2d_DHparams_bio(bio, dh->dh);
-	if (r > 1)
-	{
-		buf = BioToBuf(bio);
-	}
-
-	FreeBio(bio);
-
-	return buf;
 }
 
 // Creating a new DH
@@ -4939,6 +4302,10 @@ DH_CTX *DhNew(char *prime, UINT g)
 {
 	DH_CTX *dh;
 	BUF *buf;
+#if OPENSSL_VERSION_NUMBER >= 0x10100000L
+	BIGNUM *dhp, *dhg;
+	const BIGNUM *pub, *priv;
+#endif
 	// Validate arguments
 	if (prime == NULL || g == 0)
 	{
@@ -4950,14 +4317,27 @@ DH_CTX *DhNew(char *prime, UINT g)
 	dh = ZeroMalloc(sizeof(DH_CTX));
 
 	dh->dh = DH_new();
+#if OPENSSL_VERSION_NUMBER >= 0x10100000L
+	dhp = BinToBigNum(buf->Buf, buf->Size);
+	dhg = BN_new();
+	BN_set_word(dhg, g);
+	DH_set0_pqg(dh->dh, dhp, NULL, dhg);
+#else
 	dh->dh->p = BinToBigNum(buf->Buf, buf->Size);
 	dh->dh->g = BN_new();
 	BN_set_word(dh->dh->g, g);
+#endif
 
 	DH_generate_key(dh->dh);
 
+#if OPENSSL_VERSION_NUMBER >= 0x10100000L
+	DH_get0_key(dh->dh, &pub, &priv);
+	dh->MyPublicKey = BigNumToBuf(pub);
+	dh->MyPrivateKey = BigNumToBuf(priv);
+#else
 	dh->MyPublicKey = BigNumToBuf(dh->dh->pub_key);
 	dh->MyPrivateKey = BigNumToBuf(dh->dh->priv_key);
+#endif
 
 	dh->Size = buf->Size;
 
@@ -4983,324 +4363,191 @@ void DhFree(DH_CTX *dh)
 	Free(dh);
 }
 
+int GetSslClientCertIndex()
+{
+	return ssl_clientcert_index;
+}
+
+// Internal functions
+static UINT Internal_HMac(const EVP_MD *md, void *dest, void *key, UINT key_size, const void *src, const UINT src_size)
+{
+	MD *m;
+	UINT len = 0;
+
+	// Validate arguments
+	if (md == NULL || dest == NULL || key == NULL || key_size == 0 || (src == NULL && src_size != 0))
+	{
+		return 0;
+	}
+
+	m = ZeroMalloc(sizeof(MD));
+#if OPENSSL_VERSION_NUMBER >= 0x10100000L
+	m->Ctx = HMAC_CTX_new();
+#else
+	m->Ctx = ZeroMalloc(sizeof(HMAC_CTX));
+	HMAC_CTX_init(m->Ctx);
+#endif
+	m->Md = md;
+	m->IsHMac = true;
+
+	if (SetMdKey(m, key, key_size) == false)
+	{
+		Debug("Internal_HMac(): SetMdKey() failed!\n");
+		goto final;
+	}
+
+	len = MdProcess(m, dest, src, src_size);
+	if (len == 0)
+	{
+		Debug("Internal_HMac(): MdProcess() returned 0!\n");
+	}
+
+final:
+	FreeMd(m);
+	return len;
+}
+
 /////////////////////////
 // SHA0 implementation //
 /////////////////////////
-// 
-// From: https://bitbucket.org/Polarina/ampheck/src/097585ce2a74/src/
+
+// Source codes from:
+//  https://android.googlesource.com/platform/system/core/+/81df1cc77722000f8d0025c1ab00ced123aa573c/libmincrypt/sha.c
+//  https://android.googlesource.com/platform/system/core/+/81df1cc77722000f8d0025c1ab00ced123aa573c/include/mincrypt/hash-internal.h
+//  https://android.googlesource.com/platform/system/core/+/81df1cc77722000f8d0025c1ab00ced123aa573c/include/mincrypt/sha.h
+
 /*
-	Copyright (C) 2009  Gabriel A. Petursson
-	
-	This program is free software: you can redistribute it and/or modify
-	it under the terms of the GNU General Public License as published by
-	the Free Software Foundation, either version 3 of the License, or
-	(at your option) any later version.
-	
-	This program is distributed in the hope that it will be useful,
-	but WITHOUT ANY WARRANTY; without even the implied warranty of
-	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-	GNU General Public License for more details.
-	
-	You should have received a copy of the GNU General Public License
-	along with this program.  If not, see <http://www.gnu.org/licenses/>.
-*/
+ * Copyright 2013 The Android Open Source Project
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ *     * Redistributions of source code must retain the above copyright
+ *       notice, this list of conditions and the following disclaimer.
+ *     * Redistributions in binary form must reproduce the above copyright
+ *       notice, this list of conditions and the following disclaimer in the
+ *       documentation and/or other materials provided with the distribution.
+ *     * Neither the name of Google Inc. nor the names of its contributors may
+ *       be used to endorse or promote products derived from this software
+ *       without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY Google Inc. ``AS IS'' AND ANY EXPRESS OR
+ * IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
+ * MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO
+ * EVENT SHALL Google Inc. BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+ * PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS;
+ * OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
+ * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
+ * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
+ * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
 
-struct ampheck_sha0
-{
-	UINT h[5];
-	UCHAR buffer[64];
-	UINT64 length;
-};
-#define ROR(x, y) (((x) >> (y)) ^ ((x) << ((sizeof(x) * 8) - (y))))
-#define ROL(x, y) (((x) << (y)) ^ ((x) >> ((sizeof(x) * 8) - (y))))
-#define UNPACK_32_BE(x, str) { \
-	*((str))     = (UCHAR) ((x) >> 24); \
-	*((str) + 1) = (UCHAR) ((x) >> 16); \
-	*((str) + 2) = (UCHAR) ((x) >>  8); \
-	*((str) + 3) = (UCHAR) (x); \
-}
-#define UNPACK_64_BE(x, str) { \
-	*((str))     = (UCHAR) ((x) >> 56); \
-	*((str) + 1) = (UCHAR) ((x) >> 48); \
-	*((str) + 2) = (UCHAR) ((x) >> 40); \
-	*((str) + 3) = (UCHAR) ((x) >> 32); \
-	*((str) + 4) = (UCHAR) ((x) >> 24); \
-	*((str) + 5) = (UCHAR) ((x) >> 16); \
-	*((str) + 6) = (UCHAR) ((x) >>  8); \
-	*((str) + 7) = (UCHAR) (x); \
-}
-#define PACK_32_BE(str, x) { \
-	*(x) = ((UINT) *((str)    ) << 24) \
-	^ ((UINT) *((str) + 1) << 16) \
-	^ ((UINT) *((str) + 2) <<  8) \
-	^ ((UINT) *((str) + 3)); \
-}
-#define PACK_64_BE(str, x) { \
-	*(x) = ((UINT64) *((str)    ) << 56) \
-	^ ((UINT64) *((str) + 1) << 48) \
-	^ ((UINT64) *((str) + 2) << 40) \
-	^ ((UINT64) *((str) + 3) << 32) \
-	^ ((UINT64) *((str) + 4) << 24) \
-	^ ((UINT64) *((str) + 5) << 16) \
-	^ ((UINT64) *((str) + 6) << 8) \
-	^ ((UINT64) *((str) + 7)); \
-}
-#define UNPACK_32_LE(x, str) { \
-	*((str))     = (UCHAR) (x); \
-	*((str) + 1) = (UCHAR) ((x) >>  8); \
-	*((str) + 2) = (UCHAR) ((x) >> 16); \
-	*((str) + 3) = (UCHAR) ((x) >> 24); \
-}
-#define UNPACK_64_LE(x, str) { \
-	*((str))     = (UCHAR) (x); \
-	*((str) + 1) = (UCHAR) ((x) >>  8); \
-	*((str) + 2) = (UCHAR) ((x) >> 16); \
-	*((str) + 3) = (UCHAR) ((x) >> 24); \
-	*((str) + 4) = (UCHAR) ((x) >> 32); \
-	*((str) + 5) = (UCHAR) ((x) >> 40); \
-	*((str) + 6) = (UCHAR) ((x) >> 48); \
-	*((str) + 7) = (UCHAR) ((x) >> 56); \
-}
-#define PACK_32_LE(str, x) { \
-	*(x) = ((UINT) *((str)    )) \
-	^ ((UINT) *((str) + 1) <<  8) \
-	^ ((UINT) *((str) + 2) << 16) \
-	^ ((UINT) *((str) + 3) << 24); \
-}
-#define PACK_64_LE(str, x) { \
-	*(x) = ((UINT64) *((str)    )) \
-	^ ((UINT64) *((str) + 1) <<  8) \
-	^ ((UINT64) *((str) + 2) << 16) \
-	^ ((UINT64) *((str) + 3) << 24) \
-	^ ((UINT64) *((str) + 4) << 32) \
-	^ ((UINT64) *((str) + 5) << 40) \
-	^ ((UINT64) *((str) + 6) << 48) \
-	^ ((UINT64) *((str) + 7) << 56); \
-}
-#define SHA0_R1(x, y, z) ((z ^ (x & (y ^ z)))       + 0x5a827999)
-#define SHA0_R2(x, y, z) ((x ^ y ^ z)               + 0x6ed9eba1)
-#define SHA0_R3(x, y, z) (((x & y) | (z & (x | y))) + 0x8f1bbcdc)
-#define SHA0_R4(x, y, z) ((x ^ y ^ z)               + 0xca62c1d6)
-#define SHA0_PRC(a, b, c, d, e, idx, rnd) { \
-	wv[e] += ROR(wv[a], 27) + SHA0_R##rnd(wv[b], wv[c], wv[d]) + idx; \
-	wv[b]  = ROR(wv[b], 2); \
-}
-#define SHA0_EXT(i) ( \
-	w[i] ^= w[(i - 3) & 0x0F] ^ w[(i - 8) & 0x0F] ^ w[(i - 14) & 0x0F] \
-	)
-static void ampheck_sha0_init(struct ampheck_sha0 *ctx);
-static void ampheck_sha0_update(struct ampheck_sha0 *ctx, const UCHAR *data, UINT length);
-static void ampheck_sha0_finish(const struct ampheck_sha0 *ctx, UCHAR *digest);
-static void ampheck_sha0_init(struct ampheck_sha0 *ctx)
-{
-	ctx->h[0] = 0x67452301;
-	ctx->h[1] = 0xefcdab89;
-	ctx->h[2] = 0x98badcfe;
-	ctx->h[3] = 0x10325476;
-	ctx->h[4] = 0xc3d2e1f0;
 
-	ctx->length = 0;
+#define rol(bits, value) (((value) << (bits)) | ((value) >> (32 - (bits))))
+
+typedef struct MY_SHA0_CTX {
+//	const HASH_VTAB * f;
+	UINT64 count;
+	UCHAR buf[64];
+	UINT state[8];  // upto SHA2
+} MY_SHA0_CTX;
+
+#define MY_SHA0_DIGEST_SIZE 20
+
+static void MY_SHA0_Transform(MY_SHA0_CTX* ctx) {
+	UINT W[80];
+	UINT A, B, C, D, E;
+	UCHAR* p = ctx->buf;
+	int t;
+	for(t = 0; t < 16; ++t) {
+		UINT tmp =  *p++ << 24;
+		tmp |= *p++ << 16;
+		tmp |= *p++ << 8;
+		tmp |= *p++;
+		W[t] = tmp;
+	}
+	for(; t < 80; t++) {
+		//W[t] = rol(1,W[t-3] ^ W[t-8] ^ W[t-14] ^ W[t-16]);
+		W[t] = (1,W[t-3] ^ W[t-8] ^ W[t-14] ^ W[t-16]);
+	}
+	A = ctx->state[0];
+	B = ctx->state[1];
+	C = ctx->state[2];
+	D = ctx->state[3];
+	E = ctx->state[4];
+	for(t = 0; t < 80; t++) {
+		UINT tmp = rol(5,A) + E + W[t];
+		if (t < 20)
+			tmp += (D^(B&(C^D))) + 0x5A827999;
+		else if ( t < 40)
+			tmp += (B^C^D) + 0x6ED9EBA1;
+		else if ( t < 60)
+			tmp += ((B&C)|(D&(B|C))) + 0x8F1BBCDC;
+		else
+			tmp += (B^C^D) + 0xCA62C1D6;
+		E = D;
+		D = C;
+		C = rol(30,B);
+		B = A;
+		A = tmp;
+	}
+	ctx->state[0] += A;
+	ctx->state[1] += B;
+	ctx->state[2] += C;
+	ctx->state[3] += D;
+	ctx->state[4] += E;
 }
-
-static void ampheck_sha0_transform(struct ampheck_sha0 *ctx, const UCHAR *data, UINT blocks)
-{
-	UINT i;
-	for (i = 0; i < blocks; ++i)
-	{
-		UINT wv[5];
-		UINT w[16];
-
-		PACK_32_BE(&data[(i << 6)     ], &w[ 0]);
-		PACK_32_BE(&data[(i << 6) +  4], &w[ 1]);
-		PACK_32_BE(&data[(i << 6) +  8], &w[ 2]);
-		PACK_32_BE(&data[(i << 6) + 12], &w[ 3]);
-		PACK_32_BE(&data[(i << 6) + 16], &w[ 4]);
-		PACK_32_BE(&data[(i << 6) + 20], &w[ 5]);
-		PACK_32_BE(&data[(i << 6) + 24], &w[ 6]);
-		PACK_32_BE(&data[(i << 6) + 28], &w[ 7]);
-		PACK_32_BE(&data[(i << 6) + 32], &w[ 8]);
-		PACK_32_BE(&data[(i << 6) + 36], &w[ 9]);
-		PACK_32_BE(&data[(i << 6) + 40], &w[10]);
-		PACK_32_BE(&data[(i << 6) + 44], &w[11]);
-		PACK_32_BE(&data[(i << 6) + 48], &w[12]);
-		PACK_32_BE(&data[(i << 6) + 52], &w[13]);
-		PACK_32_BE(&data[(i << 6) + 56], &w[14]);
-		PACK_32_BE(&data[(i << 6) + 60], &w[15]);
-
-		wv[0] = ctx->h[0];
-		wv[1] = ctx->h[1];
-		wv[2] = ctx->h[2];
-		wv[3] = ctx->h[3];
-		wv[4] = ctx->h[4];
-
-		SHA0_PRC(0, 1, 2, 3, 4, w[ 0], 1);
-		SHA0_PRC(4, 0, 1, 2, 3, w[ 1], 1);
-		SHA0_PRC(3, 4, 0, 1, 2, w[ 2], 1);
-		SHA0_PRC(2, 3, 4, 0, 1, w[ 3], 1);
-		SHA0_PRC(1, 2, 3, 4, 0, w[ 4], 1);
-		SHA0_PRC(0, 1, 2, 3, 4, w[ 5], 1);
-		SHA0_PRC(4, 0, 1, 2, 3, w[ 6], 1);
-		SHA0_PRC(3, 4, 0, 1, 2, w[ 7], 1);
-		SHA0_PRC(2, 3, 4, 0, 1, w[ 8], 1);
-		SHA0_PRC(1, 2, 3, 4, 0, w[ 9], 1);
-		SHA0_PRC(0, 1, 2, 3, 4, w[10], 1);
-		SHA0_PRC(4, 0, 1, 2, 3, w[11], 1);
-		SHA0_PRC(3, 4, 0, 1, 2, w[12], 1);
-		SHA0_PRC(2, 3, 4, 0, 1, w[13], 1);
-		SHA0_PRC(1, 2, 3, 4, 0, w[14], 1);
-		SHA0_PRC(0, 1, 2, 3, 4, w[15], 1);
-		SHA0_PRC(4, 0, 1, 2, 3, SHA0_EXT( 0), 1);
-		SHA0_PRC(3, 4, 0, 1, 2, SHA0_EXT( 1), 1);
-		SHA0_PRC(2, 3, 4, 0, 1, SHA0_EXT( 2), 1);
-		SHA0_PRC(1, 2, 3, 4, 0, SHA0_EXT( 3), 1);
-
-		SHA0_PRC(0, 1, 2, 3, 4, SHA0_EXT( 4), 2);
-		SHA0_PRC(4, 0, 1, 2, 3, SHA0_EXT( 5), 2);
-		SHA0_PRC(3, 4, 0, 1, 2, SHA0_EXT( 6), 2);
-		SHA0_PRC(2, 3, 4, 0, 1, SHA0_EXT( 7), 2);
-		SHA0_PRC(1, 2, 3, 4, 0, SHA0_EXT( 8), 2);
-		SHA0_PRC(0, 1, 2, 3, 4, SHA0_EXT( 9), 2);
-		SHA0_PRC(4, 0, 1, 2, 3, SHA0_EXT(10), 2);
-		SHA0_PRC(3, 4, 0, 1, 2, SHA0_EXT(11), 2);
-		SHA0_PRC(2, 3, 4, 0, 1, SHA0_EXT(12), 2);
-		SHA0_PRC(1, 2, 3, 4, 0, SHA0_EXT(13), 2);
-		SHA0_PRC(0, 1, 2, 3, 4, SHA0_EXT(14), 2);
-		SHA0_PRC(4, 0, 1, 2, 3, SHA0_EXT(15), 2);
-		SHA0_PRC(3, 4, 0, 1, 2, SHA0_EXT( 0), 2);
-		SHA0_PRC(2, 3, 4, 0, 1, SHA0_EXT( 1), 2);
-		SHA0_PRC(1, 2, 3, 4, 0, SHA0_EXT( 2), 2);
-		SHA0_PRC(0, 1, 2, 3, 4, SHA0_EXT( 3), 2);
-		SHA0_PRC(4, 0, 1, 2, 3, SHA0_EXT( 4), 2);
-		SHA0_PRC(3, 4, 0, 1, 2, SHA0_EXT( 5), 2);
-		SHA0_PRC(2, 3, 4, 0, 1, SHA0_EXT( 6), 2);
-		SHA0_PRC(1, 2, 3, 4, 0, SHA0_EXT( 7), 2);
-
-		SHA0_PRC(0, 1, 2, 3, 4, SHA0_EXT( 8), 3);
-		SHA0_PRC(4, 0, 1, 2, 3, SHA0_EXT( 9), 3);
-		SHA0_PRC(3, 4, 0, 1, 2, SHA0_EXT(10), 3);
-		SHA0_PRC(2, 3, 4, 0, 1, SHA0_EXT(11), 3);
-		SHA0_PRC(1, 2, 3, 4, 0, SHA0_EXT(12), 3);
-		SHA0_PRC(0, 1, 2, 3, 4, SHA0_EXT(13), 3);
-		SHA0_PRC(4, 0, 1, 2, 3, SHA0_EXT(14), 3);
-		SHA0_PRC(3, 4, 0, 1, 2, SHA0_EXT(15), 3);
-		SHA0_PRC(2, 3, 4, 0, 1, SHA0_EXT( 0), 3);
-		SHA0_PRC(1, 2, 3, 4, 0, SHA0_EXT( 1), 3);
-		SHA0_PRC(0, 1, 2, 3, 4, SHA0_EXT( 2), 3);
-		SHA0_PRC(4, 0, 1, 2, 3, SHA0_EXT( 3), 3);
-		SHA0_PRC(3, 4, 0, 1, 2, SHA0_EXT( 4), 3);
-		SHA0_PRC(2, 3, 4, 0, 1, SHA0_EXT( 5), 3);
-		SHA0_PRC(1, 2, 3, 4, 0, SHA0_EXT( 6), 3);
-		SHA0_PRC(0, 1, 2, 3, 4, SHA0_EXT( 7), 3);
-		SHA0_PRC(4, 0, 1, 2, 3, SHA0_EXT( 8), 3);
-		SHA0_PRC(3, 4, 0, 1, 2, SHA0_EXT( 9), 3);
-		SHA0_PRC(2, 3, 4, 0, 1, SHA0_EXT(10), 3);
-		SHA0_PRC(1, 2, 3, 4, 0, SHA0_EXT(11), 3);
-
-		SHA0_PRC(0, 1, 2, 3, 4, SHA0_EXT(12), 4);
-		SHA0_PRC(4, 0, 1, 2, 3, SHA0_EXT(13), 4);
-		SHA0_PRC(3, 4, 0, 1, 2, SHA0_EXT(14), 4);
-		SHA0_PRC(2, 3, 4, 0, 1, SHA0_EXT(15), 4);
-		SHA0_PRC(1, 2, 3, 4, 0, SHA0_EXT( 0), 4);
-		SHA0_PRC(0, 1, 2, 3, 4, SHA0_EXT( 1), 4);
-		SHA0_PRC(4, 0, 1, 2, 3, SHA0_EXT( 2), 4);
-		SHA0_PRC(3, 4, 0, 1, 2, SHA0_EXT( 3), 4);
-		SHA0_PRC(2, 3, 4, 0, 1, SHA0_EXT( 4), 4);
-		SHA0_PRC(1, 2, 3, 4, 0, SHA0_EXT( 5), 4);
-		SHA0_PRC(0, 1, 2, 3, 4, SHA0_EXT( 6), 4);
-		SHA0_PRC(4, 0, 1, 2, 3, SHA0_EXT( 7), 4);
-		SHA0_PRC(3, 4, 0, 1, 2, SHA0_EXT( 8), 4);
-		SHA0_PRC(2, 3, 4, 0, 1, SHA0_EXT( 9), 4);
-		SHA0_PRC(1, 2, 3, 4, 0, SHA0_EXT(10), 4);
-		SHA0_PRC(0, 1, 2, 3, 4, SHA0_EXT(11), 4);
-		SHA0_PRC(4, 0, 1, 2, 3, SHA0_EXT(12), 4);
-		SHA0_PRC(3, 4, 0, 1, 2, SHA0_EXT(13), 4);
-		SHA0_PRC(2, 3, 4, 0, 1, SHA0_EXT(14), 4);
-		SHA0_PRC(1, 2, 3, 4, 0, SHA0_EXT(15), 4);
-
-		ctx->h[0] += wv[0];
-		ctx->h[1] += wv[1];
-		ctx->h[2] += wv[2];
-		ctx->h[3] += wv[3];
-		ctx->h[4] += wv[4];
+void MY_SHA0_init(MY_SHA0_CTX* ctx) {
+	//ctx->f = &SHA_VTAB;
+	ctx->state[0] = 0x67452301;
+	ctx->state[1] = 0xEFCDAB89;
+	ctx->state[2] = 0x98BADCFE;
+	ctx->state[3] = 0x10325476;
+	ctx->state[4] = 0xC3D2E1F0;
+	ctx->count = 0;
+}
+void MY_SHA0_update(MY_SHA0_CTX* ctx, const void* data, int len) {
+	int i = (int) (ctx->count & 63);
+	const UCHAR* p = (const UCHAR*)data;
+	ctx->count += len;
+	while (len--) {
+		ctx->buf[i++] = *p++;
+		if (i == 64) {
+			MY_SHA0_Transform(ctx);
+			i = 0;
+		}
 	}
 }
-
-static void ampheck_sha0_update(struct ampheck_sha0 *ctx, const UCHAR *data, UINT size)
-{
-	UINT tmp = size;
-
-	if (size >= 64 - ctx->length % 64)
-	{
-		memcpy(&ctx->buffer[ctx->length % 64], data, 64 - ctx->length % 64);
-
-		data += 64 - ctx->length % 64;
-		size -= 64 - ctx->length % 64;
-
-		ampheck_sha0_transform(ctx, ctx->buffer, 1);
-		ampheck_sha0_transform(ctx, data, size / 64);
-
-		data += size & ~63;
-		size %= 64;
-
-		memcpy(ctx->buffer, data, size);
+const UCHAR* MY_SHA0_final(MY_SHA0_CTX* ctx) {
+	UCHAR *p = ctx->buf;
+	UINT64 cnt = ctx->count * 8;
+	int i;
+	MY_SHA0_update(ctx, (UCHAR*)"\x80", 1);
+	while ((ctx->count & 63) != 56) {
+		MY_SHA0_update(ctx, (UCHAR*)"\0", 1);
 	}
-	else
-	{
-		memcpy(&ctx->buffer[ctx->length % 64], data, size);
+	for (i = 0; i < 8; ++i) {
+		UCHAR tmp = (UCHAR) (cnt >> ((7 - i) * 8));
+		MY_SHA0_update(ctx, &tmp, 1);
 	}
-
-	ctx->length += tmp;
+	for (i = 0; i < 5; i++) {
+		UINT tmp = ctx->state[i];
+		*p++ = tmp >> 24;
+		*p++ = tmp >> 16;
+		*p++ = tmp >> 8;
+		*p++ = tmp >> 0;
+	}
+	return ctx->buf;
 }
-
-static void ampheck_sha0_finish(const struct ampheck_sha0 *ctx, UCHAR *digest)
-{
-	struct ampheck_sha0 tmp;
-
-	memcpy(tmp.h, ctx->h, 5 * sizeof(UINT));
-	memcpy(tmp.buffer, ctx->buffer, ctx->length % 64);
-
-	tmp.buffer[ctx->length % 64] = 0x80;
-
-	if (ctx->length % 64 < 56)
-	{
-		memset(&tmp.buffer[ctx->length % 64 + 1], 0x00, 55 - ctx->length % 64);
-	}
-	else
-	{
-		memset(&tmp.buffer[ctx->length % 64 + 1], 0x00, 63 - ctx->length % 64);
-		ampheck_sha0_transform(&tmp, tmp.buffer, 1);
-
-		memset(tmp.buffer, 0x00, 56);
-	}
-
-	UNPACK_64_BE(ctx->length * 8, &tmp.buffer[56]);
-	ampheck_sha0_transform(&tmp, tmp.buffer, 1);
-
-	UNPACK_32_BE(tmp.h[0], &digest[ 0]);
-	UNPACK_32_BE(tmp.h[1], &digest[ 4]);
-	UNPACK_32_BE(tmp.h[2], &digest[ 8]);
-	UNPACK_32_BE(tmp.h[3], &digest[12]);
-	UNPACK_32_BE(tmp.h[4], &digest[16]);
+/* Convenience function */
+const UCHAR* MY_SHA0_hash(const void* data, int len, UCHAR* digest) {
+	MY_SHA0_CTX ctx;
+	MY_SHA0_init(&ctx);
+	MY_SHA0_update(&ctx, data, len);
+	memcpy(digest, MY_SHA0_final(&ctx), MY_SHA0_DIGEST_SIZE);
+	return digest;
 }
-static unsigned char *Internal_SHA0(const unsigned char *d, size_t n, unsigned char *md)
+static void Internal_Sha0(unsigned char *dest, const unsigned char *src, const UINT size)
 {
-	struct ampheck_sha0 c;
-	static unsigned char m[SHA_DIGEST_LENGTH];
-
-	if (md == NULL) md=m;
-
-	ampheck_sha0_init(&c);
-	ampheck_sha0_update(&c, d, (UINT)n);
-	ampheck_sha0_finish(&c, md);
-
-	return md;
+	MY_SHA0_hash(src, (int)size, dest);
 }
-
-
-
-
-
-
-// Developed by SoftEther VPN Project at University of Tsukuba in Japan.
-// Department of Computer Science has dozens of overly-enthusiastic geeks.
-// Join us: http://www.tsukuba.ac.jp/english/admission/

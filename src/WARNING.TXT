@@ -2,7 +2,7 @@ THE IMPORTANT NOTICES ABOUT SOFTETHER VPN
 
 FUNCTIONS OF VPN COMMUNICATIONS EMBEDDED ON THIS SOFTWARE ARE VERY POWERFUL
 THAN EVER. THIS STRONG VPN ABILITY WILL BRING YOU HUGE BENEFITS. HOWEVER, IF
-YOU MISUSE THIS SOFTWARE, IT MIGHT DAMAGES YOURSELF. IN ORDER TO AVOID SUCH
+YOU MISUSE THIS SOFTWARE, IT MIGHT DAMAGE YOURSELF. IN ORDER TO AVOID SUCH
 RISKS, THIS DOCUMENT ACCOUNTS IMPORTANT NOTICES FOR CUSTOMERS WHO ARE WILLING
 TO USE THIS SOFTWARE. THE FOLLOWING INSTRUCTIONS ARE VERY IMPORTANT. READ AND
 UNDERSTAND IT CAREFULLY. ADDITIONALLY, IF YOU ARE PLANNING TO USE THE DYNAMIC
@@ -80,9 +80,9 @@ the destination hostname which is specified on the VPN-client side to disable
 VPN over ICMP / DNS functions.
 
 1.5. VPN Azure Cloud Service
-If your SoftEther VPN Server is placed behind the NAT or firwall, and by some
+If your SoftEther VPN Server is placed behind the NAT or firewall, and by some
 reason you cannot use NAT Traversal function, Dynamic DNS function or VPN over
-ICMP/DNS function, you can use VPN Azure Clouse Service. SoftEther Corporation
+ICMP/DNS function, you can use VPN Azure Cloud Service. SoftEther Corporation
 operates VPN Azure Cloud on Internet. After the VPN Server makes a connection
 to the VPN Azure Cloud, the hostname "abc.vpnazure.net" ( "abc" is a unique
 hostname) can be specified to connect to the VPN Server via the VPN Azure

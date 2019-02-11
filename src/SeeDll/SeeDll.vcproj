@@ -49,7 +49,7 @@
 				EnableIntrinsicFunctions="false"
 				FavorSizeOrSpeed="0"
 				AdditionalIncludeDirectories="$(SolutionDir)Mayaqua\win32_inc;.;$(SolutionDir)"
-				PreprocessorDefinitions="WIN32;NDEBUG;_WINDOWS;_USRDLL;_USE_32BIT_TIME_T;PCDDLL_EXPORTS"
+				PreprocessorDefinitions="WIN32;NDEBUG;_WINDOWS;_USRDLL;PCDDLL_EXPORTS"
 				StringPooling="false"
 				ExceptionHandling="0"
 				RuntimeLibrary="0"
@@ -67,6 +67,7 @@
 			/>
 			<Tool
 				Name="VCResourceCompilerTool"
+				AdditionalIncludeDirectories="C:\WinDDK\7600.16385.1\inc\mfc42;$(IntDir)"
 			/>
 			<Tool
 				Name="VCPreLinkEventTool"
@@ -166,6 +167,7 @@
 			/>
 			<Tool
 				Name="VCResourceCompilerTool"
+				AdditionalIncludeDirectories="C:\WinDDK\7600.16385.1\inc\mfc42;$(IntDir)"
 			/>
 			<Tool
 				Name="VCPreLinkEventTool"

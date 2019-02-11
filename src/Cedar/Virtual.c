@@ -1,111 +1,5 @@
-// SoftEther VPN Source Code
+// SoftEther VPN Source Code - Developer Edition Master Branch
 // Cedar Communication Module
-// 
-// SoftEther VPN Server, Client and Bridge are free software under GPLv2.
-// 
-// Copyright (c) 2012-2016 Daiyuu Nobori.
-// Copyright (c) 2012-2016 SoftEther VPN Project, University of Tsukuba, Japan.
-// Copyright (c) 2012-2016 SoftEther Corporation.
-// 
-// All Rights Reserved.
-// 
-// http://www.softether.org/
-// 
-// Author: Daiyuu Nobori
-// Comments: Tetsuo Sugiyama, Ph.D.
-// 
-// This program is free software; you can redistribute it and/or
-// modify it under the terms of the GNU General Public License
-// version 2 as published by the Free Software Foundation.
-// 
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU General Public License for more details.
-// 
-// You should have received a copy of the GNU General Public License version 2
-// along with this program; if not, write to the Free Software
-// Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
-// 
-// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
-// EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
-// MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
-// IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
-// CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
-// TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
-// SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-// 
-// THE LICENSE AGREEMENT IS ATTACHED ON THE SOURCE-CODE PACKAGE
-// AS "LICENSE.TXT" FILE. READ THE TEXT FILE IN ADVANCE TO USE THE SOFTWARE.
-// 
-// 
-// THIS SOFTWARE IS DEVELOPED IN JAPAN, AND DISTRIBUTED FROM JAPAN,
-// UNDER JAPANESE LAWS. YOU MUST AGREE IN ADVANCE TO USE, COPY, MODIFY,
-// MERGE, PUBLISH, DISTRIBUTE, SUBLICENSE, AND/OR SELL COPIES OF THIS
-// SOFTWARE, THAT ANY JURIDICAL DISPUTES WHICH ARE CONCERNED TO THIS
-// SOFTWARE OR ITS CONTENTS, AGAINST US (SOFTETHER PROJECT, SOFTETHER
-// CORPORATION, DAIYUU NOBORI OR OTHER SUPPLIERS), OR ANY JURIDICAL
-// DISPUTES AGAINST US WHICH ARE CAUSED BY ANY KIND OF USING, COPYING,
-// MODIFYING, MERGING, PUBLISHING, DISTRIBUTING, SUBLICENSING, AND/OR
-// SELLING COPIES OF THIS SOFTWARE SHALL BE REGARDED AS BE CONSTRUED AND
-// CONTROLLED BY JAPANESE LAWS, AND YOU MUST FURTHER CONSENT TO
-// EXCLUSIVE JURISDICTION AND VENUE IN THE COURTS SITTING IN TOKYO,
-// JAPAN. YOU MUST WAIVE ALL DEFENSES OF LACK OF PERSONAL JURISDICTION
-// AND FORUM NON CONVENIENS. PROCESS MAY BE SERVED ON EITHER PARTY IN
-// THE MANNER AUTHORIZED BY APPLICABLE LAW OR COURT RULE.
-// 
-// USE ONLY IN JAPAN. DO NOT USE THIS SOFTWARE IN ANOTHER COUNTRY UNLESS
-// YOU HAVE A CONFIRMATION THAT THIS SOFTWARE DOES NOT VIOLATE ANY
-// CRIMINAL LAWS OR CIVIL RIGHTS IN THAT PARTICULAR COUNTRY. USING THIS
-// SOFTWARE IN OTHER COUNTRIES IS COMPLETELY AT YOUR OWN RISK. THE
-// SOFTETHER VPN PROJECT HAS DEVELOPED AND DISTRIBUTED THIS SOFTWARE TO
-// COMPLY ONLY WITH THE JAPANESE LAWS AND EXISTING CIVIL RIGHTS INCLUDING
-// PATENTS WHICH ARE SUBJECTS APPLY IN JAPAN. OTHER COUNTRIES' LAWS OR
-// CIVIL RIGHTS ARE NONE OF OUR CONCERNS NOR RESPONSIBILITIES. WE HAVE
-// NEVER INVESTIGATED ANY CRIMINAL REGULATIONS, CIVIL LAWS OR
-// INTELLECTUAL PROPERTY RIGHTS INCLUDING PATENTS IN ANY OF OTHER 200+
-// COUNTRIES AND TERRITORIES. BY NATURE, THERE ARE 200+ REGIONS IN THE
-// WORLD, WITH DIFFERENT LAWS. IT IS IMPOSSIBLE TO VERIFY EVERY
-// COUNTRIES' LAWS, REGULATIONS AND CIVIL RIGHTS TO MAKE THE SOFTWARE
-// COMPLY WITH ALL COUNTRIES' LAWS BY THE PROJECT. EVEN IF YOU WILL BE
-// SUED BY A PRIVATE ENTITY OR BE DAMAGED BY A PUBLIC SERVANT IN YOUR
-// COUNTRY, THE DEVELOPERS OF THIS SOFTWARE WILL NEVER BE LIABLE TO
-// RECOVER OR COMPENSATE SUCH DAMAGES, CRIMINAL OR CIVIL
-// RESPONSIBILITIES. NOTE THAT THIS LINE IS NOT LICENSE RESTRICTION BUT
-// JUST A STATEMENT FOR WARNING AND DISCLAIMER.
-// 
-// 
-// SOURCE CODE CONTRIBUTION
-// ------------------------
-// 
-// Your contribution to SoftEther VPN Project is much appreciated.
-// Please send patches to us through GitHub.
-// Read the SoftEther VPN Patch Acceptance Policy in advance:
-// http://www.softether.org/5-download/src/9.patch
-// 
-// 
-// DEAR SECURITY EXPERTS
-// ---------------------
-// 
-// If you find a bug or a security vulnerability please kindly inform us
-// about the problem immediately so that we can fix the security problem
-// to protect a lot of users around the world as soon as possible.
-// 
-// Our e-mail address for security reports is:
-// softether-vpn-security [at] softether.org
-// 
-// Please note that the above e-mail address is not a technical support
-// inquiry address. If you need technical assistance, please visit
-// http://www.softether.org/ and ask your question on the users forum.
-// 
-// Thank you for your cooperation.
-// 
-// 
-// NO MEMORY OR RESOURCE LEAKS
-// ---------------------------
-// 
-// The memory-leaks and resource-leaks verification under the stress
-// test has been passed before release this source code.
 
 
 // Virtual.c
@@ -436,7 +330,7 @@ void NnCombineIp(NATIVE_NAT *t, IP_COMBINE *c, UINT offset, void *data, UINT siz
 
 	if (last_packet)
 	{
-		// If No More Flagment packet arrives, the size of this datagram is finalized
+		// If No More Fragment packet arrives, the size of this datagram is finalized
 		c->Size = offset + size;
 	}
 
@@ -1072,9 +966,9 @@ void NnFragmentedIpReceived(NATIVE_NAT *t, PKT *packet)
 			c = NnInsertIpCombine(
 				t, ip->SrcIP, ip->DstIP, Endian16(ip->Identification), ip->Protocol, packet->BroadcastPacket,
 				ip->TimeToLive, false);
-			c->MaxL3Size = MAX(c->MaxL3Size, l3_size);
 			if (c != NULL)
 			{
+				c->MaxL3Size = MAX(c->MaxL3Size, l3_size);
 				NnCombineIp(t, c, offset, data, size, last_packet, head_ip_header_data, head_ip_header_size);
 			}
 		}
@@ -1178,7 +1072,7 @@ void NnIpSendFragmentedForInternet(NATIVE_NAT *t, UCHAR ip_protocol, UINT src_ip
 	ip->TypeOfService = DEFAULT_IP_TOS;
 	ip->TotalLength = Endian16((USHORT)(size + IP_HEADER_SIZE));
 	ip->Identification = Endian16(id);
-	ip->FlagsAndFlagmentOffset[0] = ip->FlagsAndFlagmentOffset[1] = 0;
+	ip->FlagsAndFragmentOffset[0] = ip->FlagsAndFragmentOffset[1] = 0;
 	IPV4_SET_OFFSET(ip, (offset / 8));
 	if ((offset + size) >= total_size)
 	{
@@ -1775,7 +1669,7 @@ void NnMainLoop(NATIVE_NAT *t, NATIVE_STACK *a)
 	AddInterrupt(interrupt, next_poll_tick);
 
 	tcp_last_recv_tick = Tick64();
-	next_dhcp_renew_tick = Tick64() + (UINT64)dhcp_renew_interval;
+	next_dhcp_renew_tick = Tick64() + (UINT64)dhcp_renew_interval * 1000;
 	AddInterrupt(interrupt, next_dhcp_renew_tick);
 
 	while (t->Halt == false && t->v->UseNat)
@@ -1833,7 +1727,7 @@ LABEL_RESTART:
 
 			IPCDhcpRenewIP(ipc, &ip);
 
-			next_dhcp_renew_tick = now + (UINT64)dhcp_renew_interval;
+			next_dhcp_renew_tick = now + (UINT64)dhcp_renew_interval * 1000;
 			AddInterrupt(interrupt, next_dhcp_renew_tick);
 		}
 
@@ -1995,12 +1889,9 @@ LABEL_RESTART:
 			}
 			Unlock(t->CancelLock);
 
-			if (c != NULL)
-			{
-				Cancel(c);
+			Cancel(c);
 
-				ReleaseCancel(c);
-			}
+			ReleaseCancel(c);
 		}
 
 		if (IsTubeConnected(ipc->Sock->RecvTube) == false || IsTubeConnected(ipc->Sock->SendTube) == false)
@@ -2250,6 +2141,7 @@ BUF *NnReadDnsRecord(BUF *buf, bool answer, USHORT *ret_type, USHORT *ret_class)
 		data = Malloc(data_len);
 		if (ReadBuf(buf, data, data_len) != data_len)
 		{
+			Free(data);
 			return false;
 		}
 
@@ -2386,7 +2278,6 @@ bool NnTestConnectivity(NATIVE_STACK *a, TUBE *halt_tube)
 	UINT64 next_send_tick = 0;
 	UINT64 giveup_time;
 	IPC *ipc;
-	UINT src_port = NnGenSrcPort(a->IsIpRawMode);
 	INTERRUPT_MANAGER *interrupt;
 	TUBE *tubes[3];
 	UINT num_tubes = 0;
@@ -2394,11 +2285,14 @@ bool NnTestConnectivity(NATIVE_STACK *a, TUBE *halt_tube)
 	IP my_priv_ip;
 	UINT num_send_dns = 0;
 	IP using_dns;
+	UINT src_port = 0;
 	// Validate arguments
 	if (a == NULL)
 	{
 		return false;
 	}
+
+	src_port = NnGenSrcPort(a->IsIpRawMode);
 
 	Copy(&using_dns, &a->DnsServerIP, sizeof(IP));
 
@@ -3997,14 +3891,16 @@ bool NatTransactIcmp(VH *v, NAT_ENTRY *n)
 	void *buf;
 	UINT recv_size;
 	BLOCK *block;
-	UINT dest_port = n->DestPort;
 	IP dest_ip;
 	UINT num_ignore_errors = 0;
+	UINT dest_port = 0;
 	// Validate arguments
 	if (v == NULL || n == NULL)
 	{
 		return true;
 	}
+
+	dest_port = n->DestPort;
 
 	if (n->DisconnectNow)
 	{
@@ -4200,14 +4096,16 @@ bool NatTransactUdp(VH *v, NAT_ENTRY *n)
 	void *buf;
 	UINT recv_size;
 	BLOCK *block;
-	UINT dest_port = n->DestPort;
 	IP dest_ip;
 	UINT num_ignore_errors;
+	UINT dest_port = 0;
 	// Validate arguments
 	if (v == NULL || n == NULL)
 	{
 		return true;
 	}
+
+	dest_port = n->DestPort;
 
 	if (n->DisconnectNow)
 	{
@@ -4424,7 +4322,7 @@ void NatTcpConnectThread(THREAD *t, void *p)
 
 	// Attempt to connect to the TCP host
 	Debug("NatTcpConnect Connecting to %s:%u\n", hostname, port_number);
-	sock = ConnectEx3(hostname, port_number, 0, &n->NatTcpCancelFlag, NULL, NULL, false, false, true);
+	sock = ConnectEx3(hostname, port_number, 0, &n->NatTcpCancelFlag, NULL, NULL, false, true);
 	if (sock == NULL)
 	{
 		// Connection failure
@@ -5002,7 +4900,7 @@ void PollingNatTcp(VH *v, NAT_ENTRY *n)
 			if (n->TcpFinished)
 			{
 				// Disconnect if all data transmission has completed
-				if (n->SendFifo->size == 0)
+				if (n->SendFifo->size == 0 && n->RecvFifo->size == 0)
 				{
 					n->TcpStatus = NAT_TCP_SEND_RESET;
 				}
@@ -5303,7 +5201,7 @@ TCP_RESET:
 			seq64 = n->RecvSeq + (UINT64)seq - (n->RecvSeqInit + n->RecvSeq) % X32;
 			if ((n->RecvSeqInit + n->RecvSeq) % X32 > seq)
 			{
-				if (((n->RecvSeqInit + n->RecvSeq) % X32 - ack) >= 0x80000000)
+				if (((n->RecvSeqInit + n->RecvSeq) % X32 - seq) >= 0x80000000)
 				{
 					seq64 = n->RecvSeq + (UINT64)seq + X32 - (n->RecvSeqInit + n->RecvSeq) % X32;
 				}
@@ -5429,7 +5327,7 @@ SCAN_FIRST:
 void ParseTcpOption(TCP_OPTION *o, void *data, UINT size)
 {
 	UCHAR *buf = (UCHAR *)data;
-	UINT i;
+	UINT i = 0;
 	UINT value_size = 0;
 	UINT value_id = 0;
 	UCHAR value[128];
@@ -5441,13 +5339,18 @@ void ParseTcpOption(TCP_OPTION *o, void *data, UINT size)
 
 	Zero(o, sizeof(TCP_OPTION));
 
-	for (i = 0;i < size;i++)
+	while(i < size)
 	{
 		if (buf[i] == 0)
 		{
 			return;
 		}
-		if (buf[i] != 1)
+		else if (buf[i] == 1)
+		{
+			i++;
+			continue;
+		}
+		else
 		{
 			value_id = buf[i];
 			i++;
@@ -5466,12 +5369,14 @@ void ParseTcpOption(TCP_OPTION *o, void *data, UINT size)
 				return;
 			}
 			value_size -= 2;
+                   
 			Copy(value, &buf[i], value_size);
 			i += value_size;
-			if (i >= size)
+			if (i > size)
 			{
 				return;
 			}
+
 			switch (value_id)
 			{
 			case 2:	// MSS
@@ -5486,14 +5391,13 @@ void ParseTcpOption(TCP_OPTION *o, void *data, UINT size)
 				if (value_size == 1)
 				{
 					UCHAR *wss = (UCHAR *)value;
-					o->WindowScaling = Endian16(*wss);
+					o->WindowScaling = *wss;
 				}
 				break;
 
 			}
 		}
 	}
-
 }
 
 // Create a new NAT TCP session
@@ -6943,104 +6847,6 @@ NAT_ENTRY *CreateNatDns(VH *v, UINT src_ip, UINT src_port, UINT dest_ip, UINT de
 	return n;
 }
 
-// Get the next byte
-UCHAR GetNextByte(BUF *b)
-{
-	UCHAR c = 0;
-	// Validate arguments
-	if (b == NULL)
-	{
-		return 0;
-	}
-
-	if (ReadBuf(b, &c, 1) != 1)
-	{
-		return 0;
-	}
-
-	return c;
-}
-
-// Interpret the DNS query
-bool ParseDnsQuery(char *name, UINT name_size, void *data, UINT data_size)
-{
-	BUF *b;
-	char tmp[257];
-	bool ok = true;
-	USHORT val;
-	// Validate arguments
-	if (name == NULL || data == NULL || data_size == 0)
-	{
-		return false;
-	}
-	StrCpy(name, name_size, "");
-
-	b = NewBuf();
-	WriteBuf(b, data, data_size);
-	SeekBuf(b, 0, 0);
-
-	while (true)
-	{
-		UINT next_len = (UINT)GetNextByte(b);
-		if (next_len > 0)
-		{
-			// Read only the specified length
-			Zero(tmp, sizeof(tmp));
-			if (ReadBuf(b, tmp, next_len) != next_len)
-			{
-				ok = false;
-				break;
-			}
-			// Append
-			if (StrLen(name) != 0)
-			{
-				StrCat(name, name_size, ".");
-			}
-			StrCat(name, name_size, tmp);
-		}
-		else
-		{
-			// Read all
-			break;
-		}
-	}
-
-	if (ReadBuf(b, &val, sizeof(val)) != sizeof(val))
-	{
-		ok = false;
-	}
-	else
-	{
-		if (Endian16(val) != 0x01 && Endian16(val) != 0x0c)
-		{
-			ok = false;
-		}
-	}
-
-	if (ReadBuf(b, &val, sizeof(val)) != sizeof(val))
-	{
-		ok = false;
-	}
-	else
-	{
-		if (Endian16(val) != 0x01)
-		{
-			ok = false;
-		}
-	}
-
-	FreeBuf(b);
-
-	if (ok == false || StrLen(name) == 0)
-	{
-		return false;
-	}
-	else
-	{
-		return true;
-	}
-}
-
 // Set the VGS host name
 void SetDnsProxyVgsHostname(char *hostname)
 {
@@ -7722,7 +7528,7 @@ void CombineIp(VH *v, IP_COMBINE *c, UINT offset, void *data, UINT size, bool la
 
 	if (last_packet)
 	{
-		// If No More Flagment packet arrives, the size of this datagram is finalized
+		// If No More Fragment packet arrives, the size of this datagram is finalized
 		c->Size = offset + size;
 	}
 
@@ -8932,7 +8738,7 @@ void SendFragmentedIp(VH *v, UINT dest_ip, UINT src_ip, USHORT id, USHORT total_
 	ip->TypeOfService = DEFAULT_IP_TOS;
 	ip->TotalLength = Endian16((USHORT)(size + IP_HEADER_SIZE));
 	ip->Identification = Endian16(id);
-	ip->FlagsAndFlagmentOffset[0] = ip->FlagsAndFlagmentOffset[1] = 0;
+	ip->FlagsAndFragmentOffset[0] = ip->FlagsAndFragmentOffset[1] = 0;
 	IPV4_SET_OFFSET(ip, (offset / 8));
 	if ((offset + size) >= total_size)
 	{
@@ -9472,7 +9278,7 @@ UINT GetFreeDhcpIpAddressByRandom(VH *v, UCHAR *mac)
 		WRITE_UINT(&rand_seed[0], i);
 		Copy(rand_seed + sizeof(UINT), mac, 6);
 
-		Hash(hash, rand_seed, sizeof(rand_seed), false);
+		Md5(hash, rand_seed, sizeof(rand_seed));
 
 		rand_int = READ_UINT(hash);
 
@@ -10388,15 +10194,15 @@ void GenMacAddress(UCHAR *mac)
 	WriteBuf(b, rand_data, sizeof(rand_data));
 
 	// Hash
-	Hash(hash, b->Buf, b->Size, true);
+	Sha0(hash, b->Buf, b->Size);
 
 	// Generate a MAC address
-	mac[0] = 0x00;
-	mac[1] = 0xAC;		// AC hurray
-	mac[2] = hash[0];
-	mac[3] = hash[1];
-	mac[4] = hash[2];
-	mac[5] = hash[3];
+	mac[0] = 0x5E;
+	mac[1] = hash[0];
+	mac[2] = hash[1];
+	mac[3] = hash[2];
+	mac[4] = hash[3];
+	mac[5] = hash[4];
 
 	FreeBuf(b);
 }
@@ -10409,7 +10215,3 @@ PACKET_ADAPTER *VirtualGetPacketAdapter()
 }
 
 
-
-// Developed by SoftEther VPN Project at University of Tsukuba in Japan.
-// Department of Computer Science has dozens of overly-enthusiastic geeks.
-// Join us: http://www.tsukuba.ac.jp/english/admission/
